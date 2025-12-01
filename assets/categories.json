@@ -1,0 +1,34 @@
+{
+  "Restaurants & Cafes": {
+    "cover": "icons8-restaurant-100.png",
+    "tags": ["Luxury Experience", "Local Favorite", "Family Friendly"]
+  },
+  "Wellness": {
+    "cover": "icons8-dumbbell-100.png",
+    "tags": ["Essential Services", "Luxury Experience", "Eco-Conscious"]
+  },
+  "Beauty & Personal Care": {
+    "cover": "icons8-lip-gloss-100.png",
+    "tags": ["Luxury Experience", "Local Favorite"]
+  },
+  "Retail": {
+    "cover": "icons8-jacket-100.png",
+    "tags": ["Local Favorite", "Eco-Conscious", "Family Friendly"]
+  },
+  "Travel & Tours": {
+    "cover": "icons8-plane-100.png",
+    "tags": []
+  },
+  "Attraction & Leisure": {
+    "cover": "icons8-museum-100.png",
+    "tags": ["Family Friendly", "Luxury Experience", "Local Favorite"]
+  },
+  "Automotive & Mobility": {
+    "cover": "icons8-car-100.png",
+    "tags": ["Essential Services", "Eco-Conscious"]
+  },
+  "Financial & Insurance": {
+    "cover": "icons8-bank-cards-100.png",
+    "tags": ["Essential Services"]
+  }
+}
