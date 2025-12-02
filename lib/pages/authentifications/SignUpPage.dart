@@ -21,6 +21,7 @@ class _SignUpPageState extends State<SignUpPage> {
   // ========================
   final TextEditingController fullNameController = TextEditingController();
   final TextEditingController phoneController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
 
   // Business Setup
@@ -132,7 +133,7 @@ class _SignUpPageState extends State<SignUpPage> {
       // Step 1: Create User Account
       try {
         final newUser = await ApiService.signUpEmail(
-          email: "temp_${DateTime.now().millisecondsSinceEpoch}@prestige.local",
+          email: emailController.text.trim(),
           fullName: fullNameController.text.trim(),
           password: passwordController.text.trim(),
           phone: phone,
@@ -300,6 +301,14 @@ class _SignUpPageState extends State<SignUpPage> {
                 controller: fullNameController,
                 label: "Full Name",
                 hint: "John Doe",
+              ),
+              const SizedBox(height: 20),
+
+              // Email
+              _buildTextField(
+                controller: emailController,
+                label: "Email",
+                hint: "johandoe@gmail.com",
               ),
               const SizedBox(height: 20),
 

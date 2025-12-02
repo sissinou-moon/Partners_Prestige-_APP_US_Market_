@@ -17,6 +17,7 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final partner = ref.watch(partnerProvider);
+    final user = ref.read(userProvider);
     final partnerId = partner?['id'];
 
     if (partnerId == null) {
@@ -83,10 +84,10 @@ class HomePage extends ConsumerWidget {
               },
             ),
 
-            const SizedBox(height: 20),
+            if(user!['tier'] != 'none') const SizedBox(height: 20),
 
             // Branches Comparison Table - NEW!
-            BranchesComparisonTable(partnerId: partnerId),
+            if(user['tier'] != 'none') BranchesComparisonTable(partnerId: partnerId),
 
             const SizedBox(height: 20),
 
@@ -125,42 +126,7 @@ class HomePage extends ConsumerWidget {
               partnerId: partnerId,
             ),
 
-            const SizedBox(height: 40),
-
-            // Logout Button
-            GestureDetector(
-              onTap: () {
-                ref.invalidate(userProvider);
-                LocalStorage.removeToken();
-                Navigator.pushReplacement(
-                    context, MaterialPageRoute(builder: (_) => const RootLayout()));
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.red.shade200),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.logout, color: Colors.red.shade700, size: 20),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Log out',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 40),
+            const SizedBox(height: 20),
           ],
         ),
       ),

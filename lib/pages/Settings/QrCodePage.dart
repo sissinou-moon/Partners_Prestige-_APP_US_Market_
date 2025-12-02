@@ -58,32 +58,58 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
 
     try {
       final partner = ref.read(partnerProvider);
+      final user = ref.read(userProvider);
       if (partner == null) throw 'Partner data not found';
 
-      final partnerId = partner['id'] as String;
       final token = await LocalStorage.getToken();
       if (token == null) throw 'Authentication token not found';
 
       final maxRedemptions = int.tryParse(_maxRedemptionsController.text.trim()) ?? 1;
 
-      final result = await QRRedeemService.createRedeemQr(
-        token: token,
-        branchId: _selectedBranchId!, // Use selected branch ID
-        rewardId: _selectedRewardId!, // Use selected reward ID
-        cost: cost,
-        partnerId: partnerId,
-        maxRedemptions: maxRedemptions,
-      );
+      if(user!['role'] != 'CASHIER') {
+        final partnerId = partner['id'];
 
-      if (result != null && result['qr'] != null) {
-        setState(() {
-          _generatedQr = result['qr'];
-          _isLoading = false;
-        });
-        _showSuccessSnackBar('QR Code generated successfully!');
-        HapticFeedback.lightImpact();
+        final result = await QRRedeemService.createRedeemQr(
+          token: token,
+          branchId: _selectedBranchId!, // Use selected branch ID
+          rewardId: _selectedRewardId!, // Use selected reward ID
+          cost: cost,
+          partnerId: partnerId,
+          maxRedemptions: maxRedemptions,
+        );
+
+        if (result != null && result['qr'] != null) {
+          setState(() {
+            _generatedQr = result['qr'];
+            _isLoading = false;
+          });
+          _showSuccessSnackBar('QR Code generated successfully!');
+          HapticFeedback.lightImpact();
+        } else {
+          throw 'Failed to generate QR code';
+        }
       } else {
-        throw 'Failed to generate QR code';
+        final partnerId = partner['partner']['id'];
+
+        final result = await QRRedeemService.createRedeemQr(
+          token: token,
+          branchId: _selectedBranchId!, // Use selected branch ID
+          rewardId: _selectedRewardId!, // Use selected reward ID
+          cost: cost,
+          partnerId: partnerId,
+          maxRedemptions: maxRedemptions,
+        );
+
+        if (result != null && result['qr'] != null) {
+          setState(() {
+            _generatedQr = result['qr'];
+            _isLoading = false;
+          });
+          _showSuccessSnackBar('QR Code generated successfully!');
+          HapticFeedback.lightImpact();
+        } else {
+          throw 'Failed to generate QR code';
+        }
       }
     } catch (e) {
       setState(() => _isLoading = false);

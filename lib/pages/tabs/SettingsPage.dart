@@ -7,11 +7,14 @@ import 'package:prestige_partners/pages/Settings/CustomersPage.dart';
 import 'package:prestige_partners/pages/Settings/LocationsPage.dart';
 import 'package:prestige_partners/pages/Settings/NotificationsPage.dart';
 import 'package:prestige_partners/pages/Settings/PosIntegrationPage.dart';
+import 'package:prestige_partners/pages/Settings/ProPlanPage.dart';
 import 'package:prestige_partners/pages/Settings/QrCodePage.dart';
 import 'package:prestige_partners/pages/Settings/ScanQrCodePage.dart';
+import 'package:prestige_partners/pages/Settings/SubscriptionDetailsPage.dart';
 
 import '../../app/lib/supabase.dart';
 import '../../app/providers/partner_provider.dart';
+import '../../app/providers/subscription_provider.dart';
 import '../Settings/ModifyBusinessProfile.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
@@ -45,6 +48,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
   Widget build(BuildContext context) {
 
     final user = ref.read(userProvider);
+    final subscription = ref.watch(subscriptionProvider);
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
@@ -88,7 +92,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                   );
                 },
               ),
-              _buildSettingsTile(
+              if(user['tier'] != 'Starter' && user['tier'] != 'none') _buildSettingsTile(
                 icon: LineIcons.user,
                 title: 'Customers',
                 subtitle: 'Manage business customers',
@@ -168,7 +172,20 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 title: 'Billing & Subscription',
                 subtitle: 'Manage your plan and payments',
                 index: 6,
-                onTap: () => _navigateTo(context, 'Billing & Subscription'),
+                onTap: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) {
+                        if(subscription != null && subscription.plan != null) {
+                          return SubscriptionDetailsPage(planName: subscription.plan!);
+                        } else {
+                          return PricingPage();
+                        }
+                      },
+                    ),
+                  );
+                },
               ),
               _buildSettingsTile(
                 icon: LineIcons.questionCircle,

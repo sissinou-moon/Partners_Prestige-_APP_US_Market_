@@ -108,11 +108,15 @@ class BranchesComparisonTable extends ConsumerWidget {
     final double finalHeight = calculatedHeight > maxHeight
         ? maxHeight
         : calculatedHeight;
+    final double constrainedMaxHeight = finalHeight - 30;
+    final double maxHeightSafe = constrainedMaxHeight < itemHeight
+        ? itemHeight
+        : constrainedMaxHeight;
 
     return ConstrainedBox(
       constraints: BoxConstraints(
-        maxHeight: finalHeight - 30,
         minHeight: itemHeight,
+        maxHeight: maxHeightSafe,
       ),
       child: ListView.separated(
         shrinkWrap: true,

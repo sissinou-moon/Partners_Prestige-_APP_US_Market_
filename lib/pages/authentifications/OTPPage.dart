@@ -76,10 +76,7 @@ class _OTPPageState extends State<OTPPage> {
 
     try {
       // 🔹 Call OTP verify API
-      if(widget.isEmail!) {
-        await ApiService.verifyEmailOTP(email: widget.email!, otp: code);
-      }
-
+      await ApiService.verifyEmailOTP(email: widget.email!, otp: code);
       // 🔹 Go to home page
       if (mounted) {
         Navigator.pushAndRemoveUntil(

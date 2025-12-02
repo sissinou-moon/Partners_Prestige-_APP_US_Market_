@@ -7,10 +7,12 @@ import 'package:prestige_partners/app/providers/partner_provider.dart';
 import 'package:prestige_partners/app/storage/local_storage.dart';
 import 'package:prestige_partners/pages/Settings/QrCodePage.dart';
 import 'package:prestige_partners/pages/Settings/ScanQrCodePage.dart';
+import 'package:prestige_partners/pages/authentifications/SignInPage.dart';
 
 import 'package:prestige_partners/pages/tabs/CompaignPage.dart';
 import 'package:prestige_partners/pages/tabs/MembersPage.dart';
 import 'package:prestige_partners/pages/tabs/StorePage.dart';
+import '../../app/providers/subscription_provider.dart';
 import '../../app/providers/user_provider.dart';
 import 'HomePage.dart';
 import 'SettingsPage.dart';
@@ -91,9 +93,9 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100),
+        preferredSize: const Size.fromHeight(130), // Increased height for more space
         child: AppBar(
-          backgroundColor: const Color(0xFF004F54),
+          backgroundColor: const Color(0xFF00B894),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(
@@ -114,27 +116,35 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
               padding: const EdgeInsets.fromLTRB(70, 20, 20, 20),
               child: Row(
                 children: [
+                  // Profile with glow effect
                   Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.white.withOpacity(0.3),
+                          blurRadius: 8,
+                          spreadRadius: 2,
+                        ),
+                      ],
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.3),
-                        width: 3,
+                        color: Colors.white.withOpacity(0.4),
+                        width: 2,
                       ),
                     ),
                     child: CircleAvatar(
-                      radius: 28,
-                      backgroundColor: Colors.white.withOpacity(0.2),
+                      radius: 30, // Slightly larger
+                      backgroundColor: Colors.white.withOpacity(0.15),
                       backgroundImage: profileImage != null && profileImage.isNotEmpty
                           ? NetworkImage(profileImage)
                           : null,
                       child: profileImage == null || profileImage.isEmpty
-                          ? const Icon(Icons.person, size: 30, color: Colors.white)
+                          ? const Icon(Icons.person, size: 32, color: Colors.white)
                           : null,
                     ),
                   ),
 
-                  const SizedBox(width: 10,),
+                  const SizedBox(width: 15),
 
                   Expanded(
                     child: Column(
@@ -144,23 +154,101 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                         Text(
                           'Hi, $fullName',
                           style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                             color: Colors.white,
+                            shadows: [
+                              Shadow(
+                                blurRadius: 4,
+                                color: Colors.black12,
+                              ),
+                            ],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+
+                        const SizedBox(height: 5),
+
                         Text(
-                          businessName == 'Business' ? '${partner!['partner']['business_type']}, ${partner['partner']['email']}' : '$businessName${businessType.isNotEmpty ? ' • $businessType' : ''}',
+                          businessName == 'Business'
+                              ? '${partner!['partner']['business_type']}, ${partner['partner']['email']}'
+                              : '$businessName${businessType.isNotEmpty ? ' • $businessType' : ''}',
                           style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withOpacity(0.8),
+                            fontSize: 14,
+                            color: Colors.white.withOpacity(0.85),
+                            shadows: [
+                              Shadow(
+                                blurRadius: 3,
+                                color: Colors.black12,
+                              ),
+                            ],
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+
+                        const SizedBox(height: 8),
+
+                        // ✨ SHINING TIER BADGE ✨
+                        if (user?['tier'] != null && user!['tier'] != 'none')
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            decoration: BoxDecoration(
+                              gradient: _getTierGradient(user!['tier']),
+                              borderRadius: BorderRadius.circular(25),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: _getTierColor(user!['tier']).withOpacity(0.4),
+                                  blurRadius: 8,
+                                  spreadRadius: 1,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                ShaderMask(
+                                  shaderCallback: (Rect bounds) {
+                                    return LinearGradient(
+                                      colors: _getTierIconColors(user!['tier']),
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ).createShader(bounds);
+                                  },
+                                  child: Icon(
+                                    _getTierIcon(user!['tier']),
+                                    size: 14,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                ShaderMask(
+                                  shaderCallback: (Rect bounds) {
+                                    return LinearGradient(
+                                      colors: _getTierTextColors(user!['tier']),
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ).createShader(bounds);
+                                  },
+                                  child: Text(
+                                    user!['tier'].toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 1,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -178,7 +266,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
             Container(
               width: double.infinity,
               decoration: const BoxDecoration(
-                color: Color(0xFF004F54),
+                color: Color(0xFF00B894),
               ),
               child: SafeArea(
                 bottom: false,
@@ -404,11 +492,24 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                 borderRadius: BorderRadius.circular(12),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: () {
+                  onTap: () async {
+
+                    // Navigate to RootLayout
                     Navigator.pushReplacement(
-                        context, MaterialPageRoute(builder: (_) => const RootLayout()));
-                    ref.invalidate(userProvider);
-                    LocalStorage.removeToken();
+                        context,
+                        MaterialPageRoute(builder: (_) => const SignInPage())
+                    );
+
+                    Future.delayed(Duration(milliseconds: 500), () async {
+                      // Clear subscription from provider AND local storage
+                      await ref.read(subscriptionProvider.notifier).clearSubscription();
+
+                      // Clear user provider
+                      ref.invalidate(userProvider);
+
+                      // Remove token from local storage
+                      await LocalStorage.removeToken();
+                    });
                   },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
@@ -444,6 +545,100 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     );
   }
 
+  LinearGradient _getTierGradient(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'starter':
+        return LinearGradient(
+          colors: [
+            Color(0xFFFBBF24), // Light amber
+            Color(0xFFD97706), // Amber
+            Color(0xFFB45309), // Dark amber
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'growth':
+        return LinearGradient(
+          colors: [
+            Color(0xFF94A3B8), // Light slate
+            Color(0xFF64748B), // Slate
+            Color(0xFF475569), // Dark slate
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      case 'premier':
+        return LinearGradient(
+          colors: [
+            Color(0xFFFDE047), // Light gold
+            Color(0xFFEAB308), // Gold
+            Color(0xFFCA8A04), // Dark gold
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        );
+      default:
+        return LinearGradient(
+          colors: [
+            Colors.white.withOpacity(0.1),
+            Colors.white.withOpacity(0.05),
+          ],
+        );
+    }
+  }
+
+  List<Color> _getTierIconColors(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'starter':
+        return [Color(0xFFFFF9C4), Color(0xFFFFF176)];
+      case 'growth':
+        return [Color(0xFFE3F2FD), Color(0xFFBBDEFB)];
+      case 'premier':
+        return [Color(0xFFFFF8E1), Color(0xFFFFF59D)];
+      default:
+        return [Colors.white, Colors.white70];
+    }
+  }
+
+  List<Color> _getTierTextColors(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'starter':
+        return [Color(0xFFFFFFFF), Color(0xFFFFF176)];
+      case 'growth':
+        return [Color(0xFFFFFFFF), Color(0xFFBBDEFB)];
+      case 'premier':
+        return [Color(0xFFFFFFFF), Color(0xFFFFF59D)];
+      default:
+        return [Colors.white, Colors.white];
+    }
+  }
+
+  Color _getTierColor(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'starter':
+        return Color(0xFFF59E0B);
+      case 'growth':
+        return Color(0xFF64748B);
+      case 'premier':
+        return Color(0xFFFBBF24);
+      default:
+        return Colors.white;
+    }
+  }
+
+  IconData _getTierIcon(String tier) {
+    switch (tier.toLowerCase()) {
+      case 'starter':
+        return Icons.bolt_rounded;
+      case 'growth':
+        return Icons.trending_up_rounded;
+      case 'premier':
+        return Icons.diamond_rounded;
+      default:
+        return Icons.star_rounded;
+    }
+  }
+
   Widget _buildDrawerItem({
     required IconData icon,
     required String title,
@@ -453,7 +648,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       child: Material(
-        color: isSelected ? Color(0xFF004F54).withOpacity(0.1) : Colors.transparent,
+        color: isSelected ? Color(0xFF00B894).withOpacity(0.1) : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -470,7 +665,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
               children: [
                 Icon(
                   icon,
-                  color: isSelected ? Color(0xFF004F54) : Colors.grey[400],
+                  color: isSelected ? Color(0xFF00B894) : Colors.grey[400],
                   size: 20,
                 ),
                 const SizedBox(width: 18),
@@ -479,7 +674,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Color(0xFF004F54) : Colors.grey[400],
+                    color: isSelected ? Color(0xFF00B894) : Colors.grey[400],
                     letterSpacing: 0.2,
                   ),
                 ),

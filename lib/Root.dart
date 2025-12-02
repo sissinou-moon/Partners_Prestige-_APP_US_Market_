@@ -5,6 +5,7 @@ import 'package:prestige_partners/app/lib/supabase.dart';
 import 'package:prestige_partners/pages/authentifications/SignInPage.dart';
 import 'package:prestige_partners/pages/tabs/MainTabLayout.dart';
 import 'app/providers/partner_provider.dart';
+import 'app/providers/subscription_provider.dart';
 import 'app/providers/user_provider.dart';
 import 'app/storage/local_storage.dart';
 
@@ -26,41 +27,46 @@ class _RootLayoutState extends ConsumerState<RootLayout> {
   }
   bool _showOnboarding = false;
 
+  // Update the _checkAuth method in RootLayout
   Future<void> _checkAuth() async {
-    // Check if onboarding already done
     _showOnboarding = !(await LocalStorage.isOnboardDone());
 
-    // Only check token IF onboarding is done
+    String? token = await LocalStorage.getToken();
+    print(token);
 
-      String? token = await LocalStorage.getToken();
-      print(token);
+    if (token != null && token.isNotEmpty) {
+      try {
+        final user = await ApiService.verifyToken(token);
+        ref.read(userProvider.notifier).state = user;
 
-      if (token != null && token.isNotEmpty) {
-        try {
-          final user = await ApiService.verifyToken(token);
-          ref.read(userProvider.notifier).state = user;
+        if(user['role'] != "CASHIER") {
+          print("HE IS REALLY AN OWNER ✅");
+          final partnerOf = await PartnerService.getPartnerByOwner(user['id']);
+          ref.read(partnerProvider.notifier).state = partnerOf.toJson();
 
-          if(user['role'] != "CASHIER") {
-            print("HE IS REALLY AN OWNER ✅");
-            final partnerOf = await PartnerService.getPartnerByOwner(user['id']);
-
-            // SAVE PARTNER
-            ref.read(partnerProvider.notifier).state = partnerOf.toJson();
-          } else {
-            print("HE IS CASHIER WORKER 🎟️💯");
-            final partnerANDbranch = await PartnerService.getCashierBranch(user['partner_branch_id']);
-            ref.read(partnerProvider.notifier).state = partnerANDbranch;
-            print(partnerANDbranch);
-          }
-
-          _authenticated = true;
-        } catch (err) {
-          await LocalStorage.removeToken();
-          _authenticated = false;
+          // ✅ FIX: Use Future.microtask to ensure build is complete
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            // Check subscription after UI is built
+            await ref.read(subscriptionProvider.notifier).checkSubscription(
+              user['id'],
+              token,
+            );
+          });
+        } else {
+          print("HE IS CASHIER WORKER 🎟️💯");
+          final partnerANDbranch = await PartnerService.getCashierBranch(user['partner_branch_id']);
+          ref.read(partnerProvider.notifier).state = partnerANDbranch;
+          print(partnerANDbranch);
         }
-      } else {
+
+        _authenticated = true;
+      } catch (err) {
+        await LocalStorage.removeToken();
         _authenticated = false;
       }
+    } else {
+      _authenticated = false;
+    }
 
     if (mounted) {
       setState(() => _loading = false);
@@ -71,6 +77,7 @@ class _RootLayoutState extends ConsumerState<RootLayout> {
   Widget build(BuildContext context) {
     if (_loading) {
       return const Scaffold(
+        backgroundColor: Colors.white,
         body: Center(child: CircularProgressIndicator()),
       );
     }

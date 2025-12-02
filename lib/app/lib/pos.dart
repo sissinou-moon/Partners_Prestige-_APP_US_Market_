@@ -317,4 +317,28 @@ class POSIntegrationService {
       return null;
     }
   }
+
+  static Future<bool> disconnect(
+      String partnerId,
+      String token,
+      ) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/disconnect?partner_id=$partnerId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['success'];
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
 }

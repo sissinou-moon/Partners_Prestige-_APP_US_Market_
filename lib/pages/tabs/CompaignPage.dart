@@ -176,7 +176,7 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
         ElevatedButton.icon(
           onPressed: _showAddCampaignDialog,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF004F54),
+            backgroundColor: const Color(0xFF00B894),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),

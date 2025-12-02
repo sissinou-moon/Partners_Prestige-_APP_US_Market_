@@ -804,6 +804,52 @@ class PartnerService {
     }
   }
 
+  static Future<Map<String, dynamic>> createSquareLocation({
+    required String branchName,
+    required String businessEmail,
+    required String firstName,
+    required String lastName,
+    required String addressLine1,
+    required String locality,
+    required String sublocality,
+    required String postalCode,
+    required String country,
+    required String partnerId,
+    required String tier,
+    required int howMuch,
+  }) async {
+    if(howMuch >= 1 && tier == 'Starter') {
+      throw Exception("You reach the max locations for STARTER tier!");
+    } else if (howMuch >= 5 && tier == 'Growth') {
+      throw Exception("You reach the max locations for GROWTH tier!");
+    } else {
+      final url = Uri.parse('https://usprestigeplusrewardsapp-production.up.railway.app/api/pos/square/locations');
+
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'branch_name': branchName,
+          'business_email': businessEmail,
+          'first_name': firstName,
+          'last_name': lastName,
+          'address_line_1': addressLine1,
+          'locality': locality,
+          'sublocality': sublocality,
+          'postal_code': postalCode,
+          'country': country,
+          'partner_id': partnerId,
+        }),
+      );
+
+      if (response.statusCode != 201) {
+        throw Exception('Failed to create location');
+      }
+
+      return jsonDecode(response.body);
+    }
+  }
+
   static Future<Map<String, dynamic>?> getCashierBranch(String branchId) async {
     try {
       final uri = Uri.parse("$API_URL/cashier/branch")

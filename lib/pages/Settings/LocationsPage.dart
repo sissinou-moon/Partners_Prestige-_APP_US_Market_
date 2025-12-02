@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:line_icons/line_icons.dart';
-
-import '../../app/lib/supabase.dart';
+import 'package:prestige_partners/app/lib/supabase.dart';
+import 'package:prestige_partners/app/providers/user_provider.dart';
+import '../../app/providers/partner_provider.dart';
 import '../../app/providers/pos_provider.dart';
 
 class LocationsPage extends ConsumerStatefulWidget {
@@ -15,9 +16,8 @@ class LocationsPage extends ConsumerStatefulWidget {
 
 class _LocationsPageState extends ConsumerState<LocationsPage>
     with SingleTickerProviderStateMixin {
-
   String _searchQuery = '';
-  String _filterStatus = 'ALL'; // ALL, ACTIVE, INACTIVE
+  String _filterStatus = 'ALL';
   late AnimationController _refreshAnimationController;
 
   @override
@@ -99,12 +99,21 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showAddLocationDialog(),
+        backgroundColor: const Color(0xFF00D4AA),
+        icon: const Icon(LineIcons.plus, color: Colors.white),
+        label: const Text(
+          'Add Location',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: Column(
         children: [
-          // Search and Filter Section
           _buildSearchAndFilter(),
-
-          // Locations List
           Expanded(
             child: locationsAsync.when(
               data: (locations) {
@@ -146,7 +155,6 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Search Bar
           Container(
             decoration: BoxDecoration(
               color: Colors.grey[100],
@@ -190,10 +198,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
               ),
             ),
           ),
-
           const SizedBox(height: 12),
-
-          // Filter Chips
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -266,7 +271,6 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Header Row
                 Row(
                   children: [
                     Container(
@@ -311,12 +315,9 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                     _buildStatusBadge(location.status),
                   ],
                 ),
-
                 const SizedBox(height: 16),
                 const Divider(height: 1),
                 const SizedBox(height: 16),
-
-                // Location Details
                 if (location.address != null) ...[
                   _buildInfoRow(
                     LineIcons.mapMarker,
@@ -324,7 +325,6 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   ),
                   const SizedBox(height: 12),
                 ],
-
                 if (location.phoneNumber != null) ...[
                   _buildInfoRow(
                     LineIcons.phone,
@@ -332,7 +332,6 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   ),
                   const SizedBox(height: 12),
                 ],
-
                 if (location.currency != null || location.country != null) ...[
                   Row(
                     children: [
@@ -354,8 +353,6 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   ),
                   const SizedBox(height: 12),
                 ],
-
-                // Capabilities Tags
                 if (location.capabilities != null && location.capabilities!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Wrap(
@@ -572,6 +569,162 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
         .map((word) => word[0].toUpperCase() + word.substring(1).toLowerCase())
         .join(' ');
   }
+
+  void _showAddLocationDialog() {
+    final branchNameCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    final firstNameCtrl = TextEditingController();
+    final lastNameCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final cityCtrl = TextEditingController();
+    final sublocalityCtrl = TextEditingController();
+    final postalCodeCtrl = TextEditingController();
+    final countryCtrl = TextEditingController(text: 'US');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(LineIcons.plus, color: Color(0xFF00D4AA)),
+            SizedBox(width: 12),
+            Text('Add New Location', style: TextStyle(fontSize: 18)),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTextField(branchNameCtrl, 'Branch Name', LineIcons.store),
+              const SizedBox(height: 12),
+              _buildTextField(emailCtrl, 'Business Email', LineIcons.envelope),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _buildTextField(firstNameCtrl, 'First Name', LineIcons.user)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildTextField(lastNameCtrl, 'Last Name', LineIcons.user)),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildTextField(addressCtrl, 'Address Line 1', LineIcons.mapMarker),
+              const SizedBox(height: 12),
+              _buildTextField(cityCtrl, 'City (Locality)', LineIcons.city),
+              const SizedBox(height: 12),
+              _buildTextField(sublocalityCtrl, 'Sublocality', LineIcons.mapPin),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(child: _buildTextField(postalCodeCtrl, 'Postal Code', LineIcons.mailBulk)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _buildTextField(countryCtrl, 'Country', LineIcons.globe)),
+                ],
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel', style: TextStyle(color: Colors.black87)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              _createLocation(
+                branchName: branchNameCtrl.text,
+                email: emailCtrl.text,
+                firstName: firstNameCtrl.text,
+                lastName: lastNameCtrl.text,
+                address: addressCtrl.text,
+                city: cityCtrl.text,
+                sublocality: sublocalityCtrl.text,
+                postalCode: postalCodeCtrl.text,
+                country: countryCtrl.text,
+              );
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00D4AA),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Create Location', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
+    return TextField(
+      controller: ctrl,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: const Color(0xFF00D4AA), size: 18),
+        filled: true,
+        fillColor: Colors.grey[100],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      ),
+    );
+  }
+
+  Future<void> _createLocation({
+    required String branchName,
+    required String email,
+    required String firstName,
+    required String lastName,
+    required String address,
+    required String city,
+    required String sublocality,
+    required String postalCode,
+    required String country,
+  }) async {
+    try {
+      HapticFeedback.mediumImpact();
+
+      final partner = ref.read(partnerProvider);
+      final user = ref.read(userProvider);
+      final locations = ref.read(locationsProvider);
+      final partnerId = partner!['id'];
+
+      final response = await PartnerService.createSquareLocation(
+        branchName: branchName,
+        businessEmail: email,
+        firstName: firstName,
+        lastName: lastName,
+        addressLine1: address,
+        locality: city,
+        sublocality: sublocality,
+        postalCode: postalCode,
+        country: country,
+        partnerId: partnerId,
+        tier: user!['tier'],
+        howMuch: locations.value!.length,
+      );
+
+      if (response['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location created successfully!'),
+            backgroundColor: Color(0xFF00D4AA),
+          ),
+        );
+        _refresh();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 }
 
 // Location Details Bottom Sheet
@@ -594,7 +747,6 @@ class LocationDetailsSheet extends StatelessWidget {
           ),
           child: Column(
             children: [
-              // Handle
               Container(
                 margin: const EdgeInsets.only(top: 12, bottom: 8),
                 width: 40,
@@ -604,14 +756,11 @@ class LocationDetailsSheet extends StatelessWidget {
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
-
-              // Content
               Expanded(
                 child: ListView(
                   controller: scrollController,
                   padding: const EdgeInsets.all(24),
                   children: [
-                    // Header
                     Row(
                       children: [
                         Container(
@@ -653,30 +802,21 @@ class LocationDetailsSheet extends StatelessWidget {
                         ),
                       ],
                     ),
-
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 24),
-
-                    // Details
                     _buildDetailSection('Location ID', location.id, LineIcons.fingerprint),
                     _buildDetailSection('Status', location.status, LineIcons.infoCircle),
-
                     if (location.address != null)
                       _buildDetailSection('Address', location.address!.fullAddress, LineIcons.mapMarker),
-
                     if (location.phoneNumber != null)
                       _buildDetailSection('Phone', location.phoneNumber!, LineIcons.phone),
-
                     if (location.websiteUrl != null)
                       _buildDetailSection('Website', location.websiteUrl!, LineIcons.globe),
-
                     if (location.currency != null)
                       _buildDetailSection('Currency', location.currency!, LineIcons.dollarSign),
-
                     if (location.timezone != null)
                       _buildDetailSection('Timezone', location.timezone!, LineIcons.clock),
-
                     if (location.capabilities != null && location.capabilities!.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       const Text(
@@ -713,7 +853,6 @@ class LocationDetailsSheet extends StatelessWidget {
                         }).toList(),
                       ),
                     ],
-
                     const SizedBox(height: 40),
                   ],
                 ),

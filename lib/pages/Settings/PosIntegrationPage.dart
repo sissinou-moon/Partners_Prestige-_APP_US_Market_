@@ -99,6 +99,7 @@ class _IntegrationPageState extends ConsumerState<IntegrationPage> {
   }
 
   Future<void> _disconnectPOS() async {
+    print("disconnect");
     final confirmed = await _showConfirmDialog(
       title: 'Disconnect Square POS?',
       message: 'Are you sure you want to disconnect your Square POS account? This will stop syncing your data.',
@@ -118,11 +119,11 @@ class _IntegrationPageState extends ConsumerState<IntegrationPage> {
       if (partner == null || user == null) throw 'Partner or user data not found';
 
       final partnerId = partner['id'] as String;
-      final token = user['token'] as String;
+      final token = await LocalStorage.getToken();
 
-      final success = await POSIntegrationService.disconnectPOS(
-        partnerId: partnerId,
-        token: token,
+      final success = await POSIntegrationService.disconnect(
+        partnerId,
+        token!,
       );
 
       if (success) {
