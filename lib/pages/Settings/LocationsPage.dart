@@ -6,6 +6,8 @@ import 'package:prestige_partners/app/lib/supabase.dart';
 import 'package:prestige_partners/app/providers/user_provider.dart';
 import '../../app/providers/partner_provider.dart';
 import '../../app/providers/pos_provider.dart';
+import '../../app/lib/pos.dart';
+import '../../app/storage/local_storage.dart';
 
 class LocationsPage extends ConsumerStatefulWidget {
   const LocationsPage({Key? key}) : super(key: key);
@@ -19,6 +21,8 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
   String _searchQuery = '';
   String _filterStatus = 'ALL';
   late AnimationController _refreshAnimationController;
+  bool _isLoadingIntegration = true;
+  String _integrationType = 'NONE'; // 'SQUARE', 'CLOVER', 'NONE'
 
   @override
   void initState() {
@@ -27,6 +31,29 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
       vsync: this,
       duration: const Duration(milliseconds: 1000),
     );
+    _checkIntegrationStatus();
+  }
+
+  Future<void> _checkIntegrationStatus() async {
+    try {
+      final partner = ref.read(partnerProvider);
+      final token = await LocalStorage.getToken();
+      if (partner != null && token != null) {
+        final connection = await POSIntegrationService.getPOSConnection(
+          partnerId: partner['id'],
+          token: token,
+        );
+        if (connection != null && connection['connection'] != null) {
+          setState(() {
+            _integrationType = connection['connection']['provider'] ?? 'NONE';
+          });
+        }
+      }
+    } catch (e) {
+      print('Integration check error: $e');
+    } finally {
+      if (mounted) setState(() => _isLoadingIntegration = false);
+    }
   }
 
   @override
@@ -80,7 +107,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: const Text(
-          'Square Locations',
+          'POS Locations',
           style: TextStyle(
             color: Colors.black87,
             fontSize: 22,
@@ -99,53 +126,63 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddLocationDialog(),
-        backgroundColor: const Color(0xFF00D4AA),
-        icon: const Icon(LineIcons.plus, color: Colors.white),
-        label: const Text(
-          'Add Location',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
-      body: Column(
-        children: [
-          _buildSearchAndFilter(),
-          Expanded(
-            child: locationsAsync.when(
-              data: (locations) {
-                final filteredLocations = _filterLocations(locations);
-
-                if (filteredLocations.isEmpty) {
-                  return _buildEmptyState();
-                }
-
-                return RefreshIndicator(
-                  onRefresh: () async => _refresh(),
-                  color: const Color(0xFF00D4AA),
-                  child: ListView.builder(
-                    physics: const BouncingScrollPhysics(),
-                    padding: const EdgeInsets.all(16),
-                    itemCount: filteredLocations.length,
-                    itemBuilder: (context, index) {
-                      return _buildLocationCard(filteredLocations[index]);
-                    },
-                  ),
-                );
-              },
-              loading: () => const Center(
-                child: CircularProgressIndicator(
-                  color: Color(0xFF00D4AA),
+      floatingActionButton: _integrationType == 'SQUARE'
+          ? FloatingActionButton.extended(
+              onPressed: () => _showAddLocationDialog(),
+              backgroundColor: const Color(0xFF00D4AA),
+              icon: const Icon(LineIcons.plus, color: Colors.white),
+              label: const Text(
+                'Add Location',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-              error: (error, stack) => _buildErrorState(error.toString()),
+            )
+          : null,
+      body: _isLoadingIntegration
+          ? const Center(
+              child: CircularProgressIndicator(color: Color(0xFF00D4AA)),
+            )
+          : _integrationType == 'CLOVER'
+          ? _buildCloverMessage()
+          : _integrationType == 'NONE'
+          ? _buildNoIntegrationMessage()
+          : Column(
+              children: [
+                _buildSearchAndFilter(),
+                Expanded(
+                  child: locationsAsync.when(
+                    data: (locations) {
+                      final filteredLocations = _filterLocations(locations);
+
+                      if (filteredLocations.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      return RefreshIndicator(
+                        onRefresh: () async => _refresh(),
+                        color: const Color(0xFF00D4AA),
+                        child: ListView.builder(
+                          physics: const BouncingScrollPhysics(),
+                          padding: const EdgeInsets.all(16),
+                          itemCount: filteredLocations.length,
+                          itemBuilder: (context, index) {
+                            return _buildLocationCard(filteredLocations[index]);
+                          },
+                        ),
+                      );
+                    },
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFF00D4AA),
+                      ),
+                    ),
+                    error: (error, stack) => _buildErrorState(error.toString()),
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -166,16 +203,10 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                 setState(() => _searchQuery = value);
                 HapticFeedback.selectionClick();
               },
-              style: const TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 hintText: 'Search locations...',
-                hintStyle: TextStyle(
-                  color: Colors.grey[500],
-                  fontSize: 15,
-                ),
+                hintStyle: TextStyle(color: Colors.grey[500], fontSize: 15),
                 prefixIcon: const Icon(
                   LineIcons.search,
                   color: Color(0xFF00D4AA),
@@ -183,12 +214,16 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                 ),
                 suffixIcon: _searchQuery.isNotEmpty
                     ? IconButton(
-                  icon: Icon(LineIcons.times, color: Colors.grey[600], size: 18),
-                  onPressed: () {
-                    setState(() => _searchQuery = '');
-                    HapticFeedback.selectionClick();
-                  },
-                )
+                        icon: Icon(
+                          LineIcons.times,
+                          color: Colors.grey[600],
+                          size: 18,
+                        ),
+                        onPressed: () {
+                          setState(() => _searchQuery = '');
+                          HapticFeedback.selectionClick();
+                        },
+                      )
                     : null,
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
@@ -326,10 +361,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   const SizedBox(height: 12),
                 ],
                 if (location.phoneNumber != null) ...[
-                  _buildInfoRow(
-                    LineIcons.phone,
-                    location.phoneNumber!,
-                  ),
+                  _buildInfoRow(LineIcons.phone, location.phoneNumber!),
                   const SizedBox(height: 12),
                 ],
                 if (location.currency != null || location.country != null) ...[
@@ -353,7 +385,8 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   ),
                   const SizedBox(height: 12),
                 ],
-                if (location.capabilities != null && location.capabilities!.isNotEmpty) ...[
+                if (location.capabilities != null &&
+                    location.capabilities!.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 6,
@@ -426,11 +459,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
   Widget _buildInfoRow(IconData icon, String text) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: Colors.grey[600],
-        ),
+        Icon(icon, size: 16, color: Colors.grey[600]),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
@@ -457,11 +486,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              LineIcons.store,
-              size: 48,
-              color: Colors.grey[400],
-            ),
+            child: Icon(LineIcons.store, size: 48, color: Colors.grey[400]),
           ),
           const SizedBox(height: 20),
           Text(
@@ -477,10 +502,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
             _searchQuery.isNotEmpty
                 ? 'Try adjusting your search'
                 : 'No locations available',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -519,10 +541,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
             Text(
               error,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -537,7 +556,11 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
-              icon: const Icon(LineIcons.syncIcon, color: Colors.white, size: 18),
+              icon: const Icon(
+                LineIcons.syncIcon,
+                color: Colors.white,
+                size: 18,
+              ),
               label: const Text(
                 'Try Again',
                 style: TextStyle(
@@ -545,6 +568,90 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
                 ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloverMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: const Color(0xFF26AA2D).withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                LineIcons.leaf,
+                size: 64,
+                color: Color(0xFF26AA2D),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Clover Integration',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "You can't create multi-locations when you use CLOVER because every partner is a branch. Please create an owner account for each of your locations.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoIntegrationMessage() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(LineIcons.plug, size: 64, color: Colors.orange),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'No Integration Found',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF1A1A1A),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              "You need to connect your account with SQUARE or CLOVER to manage locations.",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                height: 1.5,
               ),
             ),
           ],
@@ -603,13 +710,29 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(firstNameCtrl, 'First Name', LineIcons.user)),
+                  Expanded(
+                    child: _buildTextField(
+                      firstNameCtrl,
+                      'First Name',
+                      LineIcons.user,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildTextField(lastNameCtrl, 'Last Name', LineIcons.user)),
+                  Expanded(
+                    child: _buildTextField(
+                      lastNameCtrl,
+                      'Last Name',
+                      LineIcons.user,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
-              _buildTextField(addressCtrl, 'Address Line 1', LineIcons.mapMarker),
+              _buildTextField(
+                addressCtrl,
+                'Address Line 1',
+                LineIcons.mapMarker,
+              ),
               const SizedBox(height: 12),
               _buildTextField(cityCtrl, 'City (Locality)', LineIcons.city),
               const SizedBox(height: 12),
@@ -617,9 +740,21 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(postalCodeCtrl, 'Postal Code', LineIcons.mailBulk)),
+                  Expanded(
+                    child: _buildTextField(
+                      postalCodeCtrl,
+                      'Postal Code',
+                      LineIcons.mailBulk,
+                    ),
+                  ),
                   const SizedBox(width: 8),
-                  Expanded(child: _buildTextField(countryCtrl, 'Country', LineIcons.globe)),
+                  Expanded(
+                    child: _buildTextField(
+                      countryCtrl,
+                      'Country',
+                      LineIcons.globe,
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -628,7 +763,10 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.black87)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Colors.black87),
+            ),
           ),
           ElevatedButton(
             onPressed: () {
@@ -647,16 +785,25 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00D4AA),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
-            child: const Text('Create Location', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Create Location',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon) {
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon,
+  ) {
     return TextField(
       controller: ctrl,
       decoration: InputDecoration(
@@ -668,7 +815,10 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
           borderRadius: BorderRadius.circular(10),
           borderSide: BorderSide.none,
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -718,10 +868,7 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     }
   }
@@ -731,7 +878,8 @@ class _LocationsPageState extends ConsumerState<LocationsPage>
 class LocationDetailsSheet extends StatelessWidget {
   final SquareLocation location;
 
-  const LocationDetailsSheet({Key? key, required this.location}) : super(key: key);
+  const LocationDetailsSheet({Key? key, required this.location})
+    : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -805,19 +953,48 @@ class LocationDetailsSheet extends StatelessWidget {
                     const SizedBox(height: 24),
                     const Divider(),
                     const SizedBox(height: 24),
-                    _buildDetailSection('Location ID', location.id, LineIcons.fingerprint),
-                    _buildDetailSection('Status', location.status, LineIcons.infoCircle),
+                    _buildDetailSection(
+                      'Location ID',
+                      location.id,
+                      LineIcons.fingerprint,
+                    ),
+                    _buildDetailSection(
+                      'Status',
+                      location.status,
+                      LineIcons.infoCircle,
+                    ),
                     if (location.address != null)
-                      _buildDetailSection('Address', location.address!.fullAddress, LineIcons.mapMarker),
+                      _buildDetailSection(
+                        'Address',
+                        location.address!.fullAddress,
+                        LineIcons.mapMarker,
+                      ),
                     if (location.phoneNumber != null)
-                      _buildDetailSection('Phone', location.phoneNumber!, LineIcons.phone),
+                      _buildDetailSection(
+                        'Phone',
+                        location.phoneNumber!,
+                        LineIcons.phone,
+                      ),
                     if (location.websiteUrl != null)
-                      _buildDetailSection('Website', location.websiteUrl!, LineIcons.globe),
+                      _buildDetailSection(
+                        'Website',
+                        location.websiteUrl!,
+                        LineIcons.globe,
+                      ),
                     if (location.currency != null)
-                      _buildDetailSection('Currency', location.currency!, LineIcons.dollarSign),
+                      _buildDetailSection(
+                        'Currency',
+                        location.currency!,
+                        LineIcons.dollarSign,
+                      ),
                     if (location.timezone != null)
-                      _buildDetailSection('Timezone', location.timezone!, LineIcons.clock),
-                    if (location.capabilities != null && location.capabilities!.isNotEmpty) ...[
+                      _buildDetailSection(
+                        'Timezone',
+                        location.timezone!,
+                        LineIcons.clock,
+                      ),
+                    if (location.capabilities != null &&
+                        location.capabilities!.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       const Text(
                         'Capabilities',
@@ -876,11 +1053,7 @@ class LocationDetailsSheet extends StatelessWidget {
               color: const Color(0xFF00D4AA).withOpacity(0.1),
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(
-              icon,
-              color: const Color(0xFF00D4AA),
-              size: 20,
-            ),
+            child: Icon(icon, color: const Color(0xFF00D4AA), size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(

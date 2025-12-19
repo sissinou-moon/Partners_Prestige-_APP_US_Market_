@@ -53,9 +53,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
         _filteredCustomers = _customers;
       } else {
         _filteredCustomers = _customers.where((customer) {
-          final givenName = customer['givenName']?.toString().toLowerCase() ?? '';
-          final familyName = customer['familyName']?.toString().toLowerCase() ?? '';
-          final email = customer['emailAddress']?.toString().toLowerCase() ?? '';
+          final givenName =
+              customer['givenName']?.toString().toLowerCase() ?? '';
+          final familyName =
+              customer['familyName']?.toString().toLowerCase() ?? '';
+          final email =
+              customer['emailAddress']?.toString().toLowerCase() ?? '';
           final phone = customer['phoneNumber']?.toString().toLowerCase() ?? '';
 
           return givenName.contains(query) ||
@@ -177,36 +180,34 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
       ),
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF00D4AA),
-        ),
-      )
+              child: CircularProgressIndicator(color: Color(0xFF00D4AA)),
+            )
           : Column(
-        children: [
-          // Stats & Search Bar
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: Column(
               children: [
-                // Stats Row
-                _buildStatsRow(),
-                const SizedBox(height: 16),
+                // Stats & Search Bar
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  child: Column(
+                    children: [
+                      // Stats Row
+                      _buildStatsRow(),
+                      const SizedBox(height: 16),
 
-                // Search Bar
-                _buildSearchBar(),
+                      // Search Bar
+                      _buildSearchBar(),
+                    ],
+                  ),
+                ),
+
+                // Customers List
+                Expanded(
+                  child: _filteredCustomers.isEmpty
+                      ? _buildEmptyState()
+                      : _buildCustomersList(),
+                ),
               ],
             ),
-          ),
-
-          // Customers List
-          Expanded(
-            child: _filteredCustomers.isEmpty
-                ? _buildEmptyState()
-                : _buildCustomersList(),
-          ),
-        ],
-      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           setState(() => _showCreateForm = !_showCreateForm);
@@ -234,7 +235,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00D4AA), Color(0xFF00B894)],
+          colors: [Color(0xFF00D4AA), Color(0xFF13B386)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -255,11 +256,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
             label: 'Total Customers',
             value: _customers.length.toString(),
           ),
-          Container(
-            width: 1,
-            height: 40,
-            color: Colors.white.withOpacity(0.3),
-          ),
+          Container(width: 1, height: 40, color: Colors.white.withOpacity(0.3)),
           _buildStatItem(
             icon: LineIcons.search,
             label: 'Filtered Results',
@@ -303,16 +300,10 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
   Widget _buildSearchBar() {
     return TextField(
       controller: _searchController,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         hintText: 'Search customers...',
-        hintStyle: TextStyle(
-          color: Colors.grey[400],
-          fontSize: 14,
-        ),
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
         prefixIcon: const Icon(
           LineIcons.search,
           color: Color(0xFF00D4AA),
@@ -320,12 +311,12 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
         ),
         suffixIcon: _searchController.text.isNotEmpty
             ? IconButton(
-          icon: const Icon(LineIcons.timesCircle, size: 18),
-          onPressed: () {
-            _searchController.clear();
-            HapticFeedback.selectionClick();
-          },
-        )
+                icon: const Icon(LineIcons.timesCircle, size: 18),
+                onPressed: () {
+                  _searchController.clear();
+                  HapticFeedback.selectionClick();
+                },
+              )
             : null,
         filled: true,
         fillColor: Colors.grey[100],
@@ -384,10 +375,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
       builder: (context, value, child) {
         return Transform.translate(
           offset: Offset(0, 20 * (1 - value)),
-          child: Opacity(
-            opacity: value,
-            child: child,
-          ),
+          child: Opacity(opacity: value, child: child),
         );
       },
       child: Container(
@@ -421,7 +409,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                     height: 56,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFF00D4AA), Color(0xFF00B894)],
+                        colors: [Color(0xFF00D4AA), Color(0xFF13B386)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -501,11 +489,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                   ),
 
                   // Arrow
-                  Icon(
-                    LineIcons.angleRight,
-                    color: Colors.grey[400],
-                    size: 20,
-                  ),
+                  Icon(LineIcons.angleRight, color: Colors.grey[400], size: 20),
                 ],
               ),
             ),
@@ -616,21 +600,21 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                 ),
                 child: _isCreating
                     ? const SizedBox(
-                  height: 20,
-                  width: 20,
-                  child: CircularProgressIndicator(
-                    color: Colors.white,
-                    strokeWidth: 2,
-                  ),
-                )
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
                     : const Text(
-                  'Create Customer',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
+                        'Create Customer',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
             ),
           ],
@@ -648,16 +632,10 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 13,
-        ),
+        labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
         prefixIcon: Icon(icon, color: const Color(0xFF00D4AA), size: 18),
         filled: true,
         fillColor: Colors.grey[50],
@@ -692,11 +670,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
               color: Colors.grey[100],
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              LineIcons.users,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            child: Icon(LineIcons.users, size: 64, color: Colors.grey[400]),
           ),
           const SizedBox(height: 24),
           Text(
@@ -714,10 +688,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
             _searchController.text.isEmpty
                 ? 'Add your first customer to get started'
                 : 'Try adjusting your search',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
         ],
       ),
@@ -753,7 +724,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                   height: 60,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF00D4AA), Color(0xFF00B894)],
+                      colors: [Color(0xFF00D4AA), Color(0xFF13B386)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -786,10 +757,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
                       const SizedBox(height: 4),
                       Text(
                         'Customer Details',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -853,11 +821,7 @@ class _CustomersPageState extends ConsumerState<CustomersPage> {
             color: const Color(0xFF00D4AA).withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF00D4AA),
-            size: 20,
-          ),
+          child: Icon(icon, color: const Color(0xFF00D4AA), size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(

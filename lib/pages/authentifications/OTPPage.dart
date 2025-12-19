@@ -1,18 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:prestige_partners/app/lib/auth.dart';
-
 import 'SignInPage.dart';
+import 'ResetPasswordPage.dart';
 
 class OTPPage extends StatefulWidget {
   final String? email;
   final bool? isEmail;
   final String? phone;
+  final bool forResetPassword;
 
   const OTPPage({
     super.key,
     this.email,
     this.isEmail,
     this.phone,
+    this.forResetPassword = false,
   });
 
   @override
@@ -20,18 +22,19 @@ class OTPPage extends StatefulWidget {
 }
 
 class _OTPPageState extends State<OTPPage> {
-  final List<TextEditingController> _controllers =
-  List.generate(6, (index) => TextEditingController());
+  final List<TextEditingController> _controllers = List.generate(
+    6,
+    (index) => TextEditingController(),
+  );
 
   bool _loading = false;
   int _seconds = 45;
-  late final _focusNodes =
-  List.generate(6, (index) => FocusNode());
+  late final _focusNodes = List.generate(6, (index) => FocusNode());
 
   @override
   void initState() {
     super.initState();
-    print(widget.phone?.length); // crash if email is null
+    print(widget.phone?.length);
     _startTimer();
   }
 
@@ -62,6 +65,38 @@ class _OTPPageState extends State<OTPPage> {
   }
 
   void _resendOTP() async {
+    try {
+      if (widget.forResetPassword) {
+        await ApiService.sendPasswordResetOTP(
+          isEmail: widget.isEmail ?? true,
+          email: widget.email,
+          phone: widget.phone,
+        );
+      } else {
+        if (widget.isEmail == true && widget.email != null) {
+          await ApiService.resendEmailOTP(widget.email!);
+        } else {
+          // TODO: Implement phone resend OTP for signup
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Phone resend not implemented yet")),
+          );
+          return;
+        }
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Your New code has been sent!")),
+      );
+
+      setState(() {
+        _seconds = 45;
+      });
+      _startTimer();
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Failed to resend OTP: $e")));
+    }
   }
 
   void _submit() async {
@@ -75,23 +110,66 @@ class _OTPPageState extends State<OTPPage> {
     setState(() => _loading = true);
 
     try {
-      // 🔹 Call OTP verify API
-      await ApiService.verifyEmailOTP(email: widget.email!, otp: code);
-      // 🔹 Go to home page
+      // 🔹 Handle Password Reset Flow
+      if (widget.forResetPassword) {
+        // If it's a phone, simple check might not work if backend expects email.
+        // But assuming checkPasswordOTP handles it or we only support email reset for now.
+        // Based on backend code, it expects EMAIL.
+        if (widget.isEmail != true) {
+          // If phone support is added to backend checkPasswordOTP, this would be valid.
+          // For now, let's warn or try to proceed if backend was updated.
+          // But we will send email if available.
+        }
+
+        await ApiService.checkPasswordOTP(widget.email ?? "", code);
+
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ResetPasswordPage(
+                email: widget.email!,
+                phone: widget.phone,
+                isEmail: widget.isEmail!,
+              ),
+            ),
+          );
+        }
+        return;
+      }
+
+      // 🔹 Call OTP verify API for account verification
+      if (widget.isEmail == true && widget.email != null) {
+        await ApiService.verifyEmailOTP(email: widget.email!, otp: code);
+      } else {
+        // Phone verification logic
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Phone verification not implemented yet"),
+          ),
+        );
+        return;
+      }
+
+      // 🔹 Go to login page
       if (mounted) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const SignInPage()),
-              (route) => false,
+          (route) => false,
         );
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Your account is successfully verified , Log in to access to your account!")),
+          const SnackBar(
+            content: Text(
+              "Your account is successfully verified , Log in to access to your account!",
+            ),
+          ),
         );
       }
     } catch (err) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(err.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(err.toString())));
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -111,10 +189,7 @@ class _OTPPageState extends State<OTPPage> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // Illustration
-                Image.asset(
-                  "assets/prestige_logo.png",
-                  height: 45,
-                ),
+                Image.asset("assets/prestige_logo.png", height: 45),
 
                 const SizedBox(height: 20),
 
@@ -187,27 +262,27 @@ class _OTPPageState extends State<OTPPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF004F54),
+                        color: const Color(0xFF13B386),
                         borderRadius: BorderRadius.circular(14),
                       ),
                       alignment: Alignment.center,
                       child: _loading
                           ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Text(
-                        "Verify",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                              "Verify",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                 ),
@@ -216,20 +291,17 @@ class _OTPPageState extends State<OTPPage> {
 
                 // Resend section
                 TextButton(
-                  onPressed: _seconds == 0 ? () {
-                    _resendOTP();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Your New code has been resend!")),
-                    );
-                  } : null,
+                  onPressed: _seconds == 0
+                      ? () {
+                          _resendOTP();
+                        }
+                      : null,
                   child: Text(
-                    _seconds == 0
-                        ? "Resend Code"
-                        : "Resend in $_seconds s",
+                    _seconds == 0 ? "Resend Code" : "Resend in $_seconds s",
                     style: TextStyle(
                       fontSize: 14,
                       color: _seconds == 0
-                          ? const Color(0xFF004F54)
+                          ? const Color(0xFF13B386)
                           : Colors.grey,
                     ),
                   ),

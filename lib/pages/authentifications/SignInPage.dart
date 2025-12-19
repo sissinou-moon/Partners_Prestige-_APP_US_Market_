@@ -4,12 +4,14 @@ import 'package:prestige_partners/app/lib/auth.dart';
 import 'package:prestige_partners/app/lib/supabase.dart';
 import 'package:prestige_partners/app/providers/partner_provider.dart';
 import 'package:prestige_partners/pages/authentifications/SignUpPage.dart';
+import 'ForgotPasswordPage.dart';
 
 import '../../Root.dart';
 import '../../app/providers/user_provider.dart';
 import '../../app/storage/local_storage.dart';
 import '../../styles/styles.dart';
-class SignInPage extends ConsumerStatefulWidget  {
+
+class SignInPage extends ConsumerStatefulWidget {
   const SignInPage({super.key});
 
   @override
@@ -25,32 +27,40 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   bool isEmailLogin = true;
   bool showPassword = false;
 
-  void SignIn () async {
+  void SignIn() async {
     final email = emailController.text.trim();
 
     final password = passwordController.text.trim();
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("All fields are required")),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("All fields are required")));
       return;
     }
 
     setState(() => isLoading = true);
 
     try {
-      final data = await ApiService.signIn(password: passwordController.text.trim(), isEmail: true, email: emailController.text.trim());
+      final data = await ApiService.signIn(
+        password: passwordController.text.trim(),
+        isEmail: true,
+        email: emailController.text.trim(),
+      );
 
-      if(data['user']['role'] != "CASHIER") {
+      if (data['user']['role'] != "CASHIER") {
         print("HE IS REALLY AN OWNER OR MANAGER ✅");
-        final partnerOf = await PartnerService.getPartnerByOwner(data['user']['id']);
+        final partnerOf = await PartnerService.getPartnerByOwner(
+          data['user']['id'],
+        );
 
         // SAVE PARTNER
         ref.read(partnerProvider.notifier).state = partnerOf.toJson();
       } else {
         print("HE IS CASHIER WORKER 🎟️💯");
-        final partnerANDbranch = await PartnerService.getCashierBranch(data['user']['partner_branch_id']);
+        final partnerANDbranch = await PartnerService.getCashierBranch(
+          data['user']['partner_branch_id'],
+        );
         ref.read(partnerProvider.notifier).state = partnerANDbranch;
         print(partnerANDbranch);
       }
@@ -68,17 +78,13 @@ class _SignInPageState extends ConsumerState<SignInPage> {
           MaterialPageRoute(builder: (_) => const RootLayout()),
         );
       }
-
     } catch (err) {
       final msg = err.toString();
 
       // 🔥 حالة عدم التحقق
 
       // أي خطأ آخر
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(msg)),
-      );
-
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
@@ -92,29 +98,23 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      resizeToAvoidBottomInset: false,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
+            // Add keyboard dismiss behavior
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const SizedBox(height: 40),
 
                 // Logo
-                Image.asset(
-                  'assets/prestige_logo.png',
-                  width: 90,
-                  height: 30,
-                ),
+                Image.asset('assets/prestige_logo.png', width: 90, height: 30),
 
                 const SizedBox(height: 40),
 
-                const Text(
-                  "Welcome Back!",
-                  style: AppStyles.title,
-                ),
+                const Text("Welcome Back!", style: AppStyles.title),
 
                 const SizedBox(height: 8),
 
@@ -126,58 +126,6 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
                 const SizedBox(height: 40),
 
-                // Toggle
-                Container(
-                  width: width * 0.6,
-                  decoration: AppStyles.toggleContainer,
-                  padding: const EdgeInsets.all(4),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isEmailLogin = true;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 35),
-                          decoration: isEmailLogin
-                              ? AppStyles.toggleActive
-                              : const BoxDecoration(color: Colors.transparent),
-                          child: const Text(
-                            "Email",
-                            style: AppStyles.subTitle,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            isEmailLogin = false;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 35),
-                          decoration: !isEmailLogin
-                              ? AppStyles.toggleActive
-                              : const BoxDecoration(color: Colors.transparent),
-                          child: const Text(
-                            "Phone",
-                            style: AppStyles.subTitle,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 30),
-
-                // Email/Phone input
                 // Email/Phone input
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -195,10 +143,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                           // Show flag and +1 only for phone input
                           if (!isEmailLogin) ...[
                             const SizedBox(width: 15),
-                            const Text(
-                              "🇺🇸",
-                              style: TextStyle(fontSize: 20),
-                            ),
+                            const Text("🇺🇸", style: TextStyle(fontSize: 20)),
                             const SizedBox(width: 8),
                             const Text(
                               "+1",
@@ -217,15 +162,20 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                           ],
                           Expanded(
                             child: TextField(
-                              controller: isEmailLogin ? emailController : phoneController,
+                              controller: isEmailLogin
+                                  ? emailController
+                                  : phoneController,
                               keyboardType: isEmailLogin
                                   ? TextInputType.emailAddress
                                   : TextInputType.phone,
                               decoration: InputDecoration(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 15)
-                                    .copyWith(bottom: 5),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 15,
+                                ).copyWith(bottom: 5),
                                 border: InputBorder.none,
-                                hintText: isEmailLogin ? "johan@gmail.com" : "983 728 1234",
+                                hintText: isEmailLogin
+                                    ? "johan@gmail.com"
+                                    : "983 728 1234",
                                 hintStyle: AppStyles.hintText,
                               ),
                             ),
@@ -242,10 +192,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      "Password",
-                      style: AppStyles.inputTitle,
-                    ),
+                    const Text("Password", style: AppStyles.inputTitle),
                     const SizedBox(height: 6),
                     Container(
                       height: 43,
@@ -255,8 +202,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                         obscureText: !showPassword,
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 15)
-                              .copyWith(top: 7),
+                            horizontal: 15,
+                          ).copyWith(top: 7),
                           border: InputBorder.none,
                           hintText: "•••••••••••",
                           hintStyle: AppStyles.hintText,
@@ -284,7 +231,12 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   alignment: Alignment.centerLeft,
                   child: GestureDetector(
                     onTap: () {
-                      // Handle forgot password
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ForgotPasswordPage(),
+                        ),
+                      );
                     },
                     child: Text(
                       "Forgot password?",
@@ -297,9 +249,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
 
                 // Continue Button
                 GestureDetector(
-                  onTap: isLoading ? null : () {
-                      SignIn();
-                  },
+                  onTap: isLoading
+                      ? null
+                      : () {
+                          SignIn();
+                        },
                   child: Opacity(
                     opacity: isLoading ? 0.6 : 1.0,
                     child: Container(
@@ -309,17 +263,17 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       alignment: Alignment.center,
                       child: isLoading
                           ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
                           : const Text(
-                        "Continue",
-                        style: AppStyles.buttonContent,
-                      ),
+                              "Continue",
+                              style: AppStyles.buttonContent,
+                            ),
                     ),
                   ),
                 ),
@@ -329,7 +283,10 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 // Signup
                 GestureDetector(
                   onTap: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SignUpPage()));
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignUpPage()),
+                    );
                   },
                   child: const Padding(
                     padding: EdgeInsets.all(8.0),
@@ -338,90 +295,6 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       style: AppStyles.textButton,
                     ),
                   ),
-                ),
-
-                const SizedBox(height: 5),
-
-                // Divider
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 1,
-                      color: Colors.black,
-                    ),
-                    const SizedBox(width: 10),
-                    const Text("Or", style: TextStyle(fontSize: 10)),
-                    const SizedBox(width: 10),
-                    Container(
-                      width: 90,
-                      height: 1,
-                      color: Colors.black,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 5),
-
-                // Google & Facebook
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(13),
-                          border: Border.all(
-                              color: const Color(0x30000000), width: 0.7),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset("assets/google.png",
-                                height: 20, width: 25),
-                            const SizedBox(width: 6),
-                            const Text(
-                              "Google",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(13),
-                          border: Border.all(
-                              color: const Color(0x30000000), width: 0.7),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Image.asset("assets/facebook_logo.png",
-                                height: 20, width: 25),
-                            const SizedBox(width: 6),
-                            const Text(
-                              "Facebook",
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
                 ),
 
                 const SizedBox(height: 40),

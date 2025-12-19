@@ -62,14 +62,19 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Campaign'),
-        content: const Text('Are you sure you want to delete this campaign? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this campaign? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
+            onPressed: () {
+              PartnerService.deleteReward(rewardId);
+              Navigator.of(context).pop(true);
+            },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
           ),
@@ -80,7 +85,9 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
     if (confirmed == true) {
       // TODO: Implement delete functionality
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Campaign deleted successfully')),
+        const SnackBar(
+          content: Text('Campaign deleted successfully, click refresh!'),
+        ),
       );
     }
   }
@@ -137,7 +144,8 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
                   );
                 },
                 loading: () => const _LoadingRewardsTable(),
-                error: (error, stack) => _ErrorRewardsTable(error: error.toString()),
+                error: (error, stack) =>
+                    _ErrorRewardsTable(error: error.toString()),
               ),
 
               const SizedBox(height: 20),
@@ -166,17 +174,14 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
             const SizedBox(height: 4),
             Text(
               'Manage your promotional campaigns',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
         ElevatedButton.icon(
           onPressed: _showAddCampaignDialog,
           style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF00B894),
+            backgroundColor: const Color(0xFF13B386),
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -211,23 +216,20 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
       decoration: InputDecoration(
         hintText: 'Search campaigns by title or description...',
         hintStyle: TextStyle(color: Colors.grey[500]),
-        prefixIcon: Icon(
-          FluentIcons.search_20_filled,
-          color: Colors.grey[600],
-        ),
+        prefixIcon: Icon(FluentIcons.search_20_filled, color: Colors.grey[600]),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
-          icon: Icon(
-            FluentIcons.dismiss_20_filled,
-            color: Colors.grey[600],
-          ),
-          onPressed: () {
-            _searchController.clear();
-            setState(() {
-              _searchQuery = '';
-            });
-          },
-        )
+                icon: Icon(
+                  FluentIcons.dismiss_20_filled,
+                  color: Colors.grey[600],
+                ),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              )
             : null,
         filled: true,
         fillColor: Colors.white,
@@ -243,7 +245,10 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF00D4AA), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -268,9 +273,9 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
             color: const Color(0xFF00D4AA),
           ),
           onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Loading...")),
-            );
+            ScaffoldMessenger.of(
+              context,
+            ).showSnackBar(const SnackBar(content: Text("Loading...")));
             final partner = ref.read(partnerProvider);
             if (partner != null) {
               ref.invalidate(partnerRewardsProvider(partner['id'] as String));
@@ -285,18 +290,24 @@ class _CompaignPageState extends ConsumerState<CompaignPage> {
   }
 
   List<Map<String, dynamic>> _filterRewards(
-      List<Map<String, dynamic>> rewards,
-      String query,
-      ) {
+    List<Map<String, dynamic>> rewards,
+    String query,
+  ) {
     if (query.isEmpty) {
       return rewards;
     }
 
     final lowerQuery = query.toLowerCase();
     return rewards
-        .where((reward) =>
-    (reward['title'] as String? ?? '').toLowerCase().contains(lowerQuery) ||
-        (reward['description'] as String? ?? '').toLowerCase().contains(lowerQuery))
+        .where(
+          (reward) =>
+              (reward['title'] as String? ?? '').toLowerCase().contains(
+                lowerQuery,
+              ) ||
+              (reward['description'] as String? ?? '').toLowerCase().contains(
+                lowerQuery,
+              ),
+        )
         .toList();
   }
 }
@@ -308,7 +319,8 @@ class _CampaignFormDialog extends ConsumerStatefulWidget {
   const _CampaignFormDialog({this.reward});
 
   @override
-  ConsumerState<_CampaignFormDialog> createState() => _CampaignFormDialogState();
+  ConsumerState<_CampaignFormDialog> createState() =>
+      _CampaignFormDialogState();
 }
 
 class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
@@ -339,14 +351,30 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
     super.initState();
     final reward = widget.reward;
     _titleController = TextEditingController(text: reward?['title'] ?? '');
-    _descriptionController = TextEditingController(text: reward?['description'] ?? '');
-    _pointsController = TextEditingController(text: (reward?['points_required'] ?? '').toString());
-    _discountPercentageController = TextEditingController(text: (reward?['discount_percentage'] ?? '').toString());
-    _discountAmountController = TextEditingController(text: (reward?['discount_amount'] ?? '').toString());
-    _maxDiscountController = TextEditingController(text: (reward?['max_discount_amount'] ?? '').toString());
-    _maxRedemptionsController = TextEditingController(text: (reward?['max_redemptions'] ?? '').toString());
-    _maxPerUserController = TextEditingController(text: (reward?['max_per_user'] ?? '').toString());
-    _termsController = TextEditingController(text: reward?['terms_conditions'] ?? '');
+    _descriptionController = TextEditingController(
+      text: reward?['description'] ?? '',
+    );
+    _pointsController = TextEditingController(
+      text: (reward?['points_required'] ?? '').toString(),
+    );
+    _discountPercentageController = TextEditingController(
+      text: (reward?['discount_percentage'] ?? '').toString(),
+    );
+    _discountAmountController = TextEditingController(
+      text: (reward?['discount_amount'] ?? '').toString(),
+    );
+    _maxDiscountController = TextEditingController(
+      text: (reward?['max_discount_amount'] ?? '').toString(),
+    );
+    _maxRedemptionsController = TextEditingController(
+      text: (reward?['max_redemptions'] ?? '').toString(),
+    );
+    _maxPerUserController = TextEditingController(
+      text: (reward?['max_per_user'] ?? '').toString(),
+    );
+    _termsController = TextEditingController(
+      text: reward?['terms_conditions'] ?? '',
+    );
 
     // Initialize branch selection
     _selectedBranchId = reward?['partner_branch_id'];
@@ -422,10 +450,9 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
 
     try {
       final token = await LocalStorage.getToken();
-      final imageUrl = await RewardService(token!).uploadBanner(
-        rewardID: rewardId,
-        imageFile: _selectedImage!,
-      );
+      final imageUrl = await RewardService(
+        token!,
+      ).uploadBanner(rewardID: rewardId, imageFile: _selectedImage!);
 
       // Image uploaded successfully, you can store the URL if needed
       print('Image uploaded successfully: $imageUrl');
@@ -453,17 +480,22 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
         'description': _descriptionController.text,
         'points_required': int.tryParse(_pointsController.text) ?? 0,
         'reward_type': _rewardType,
-        'discount_percentage': _rewardType == 'DISCOUNT_PERCENTAGE' ? int.tryParse(_discountPercentageController.text) : null,
-        'discount_amount': _rewardType == 'DISCOUNT_AMOUNT' ? int.tryParse(_discountAmountController.text) : null,
+        'discount_percentage': _rewardType == 'DISCOUNT_PERCENTAGE'
+            ? int.tryParse(_discountPercentageController.text)
+            : null,
+        'discount_amount': _rewardType == 'DISCOUNT_AMOUNT'
+            ? int.tryParse(_discountAmountController.text)
+            : null,
         'max_discount_amount': int.tryParse(_maxDiscountController.text),
         'partner_id': partner['id'],
+        'category': partner['category'],
         'is_global': _isGlobal,
         'partner_branch_id': _isGlobal ? null : _selectedBranchId,
         'valid_from': _validFrom?.toIso8601String(),
         'valid_until': _validUntil?.toIso8601String(),
         'max_redemptions': int.tryParse(_maxRedemptionsController.text) ?? 0,
         'max_per_user': int.tryParse(_maxPerUserController.text) ?? 0,
-        'status': _status,
+        'status': 'INACTIVE',
         'terms_conditions': _termsController.text,
       };
 
@@ -473,7 +505,9 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
 
         if (widget.reward != null) {
           // Update existing reward
-          await RewardService(token!).updateReward(widget.reward!['id'], payload);
+          await RewardService(
+            token!,
+          ).updateReward(widget.reward!['id'], payload);
 
           // Upload image if selected for existing reward
           if (_selectedImage != null) {
@@ -515,8 +549,10 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Campaign created successfully'),
-                    backgroundColor: Colors.green,
+                    content: Text(
+                      'Campaign created successfully, wait for the admin to approve your compaign',
+                    ),
+                    backgroundColor: const Color.fromARGB(255, 48, 115, 50),
                   ),
                 );
               });
@@ -632,7 +668,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                           label: 'Campaign Title',
                           icon: LineIcons.tag,
                           validator: (value) =>
-                          value?.isEmpty ?? true ? 'Required' : null,
+                              value?.isEmpty ?? true ? 'Required' : null,
                         ),
                         const SizedBox(height: 16),
                         _buildTextField(
@@ -663,7 +699,11 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                           label: 'Reward Type',
                           icon: LineIcons.gift,
                           value: _rewardType,
-                          items: ['DISCOUNT_PERCENTAGE', 'DISCOUNT_AMOUNT', 'FREE_PRODUCT'],
+                          items: [
+                            'DISCOUNT_PERCENTAGE',
+                            'DISCOUNT_AMOUNT',
+                            'FREE_PRODUCT',
+                          ],
                           onChanged: (value) =>
                               setState(() => _rewardType = value!),
                         ),
@@ -714,7 +754,10 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                           decoration: BoxDecoration(
                             color: Colors.grey[100],
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.grey[200]!, width: 1),
+                            border: Border.all(
+                              color: Colors.grey[200]!,
+                              width: 1,
+                            ),
                           ),
                           child: SwitchListTile(
                             title: const Text(
@@ -937,10 +980,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                     const SizedBox(height: 4),
                     Text(
                       'Recommended: 1200x400px',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
                 ],
@@ -979,16 +1019,10 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
-      style: const TextStyle(
-        fontSize: 15,
-        fontWeight: FontWeight.w500,
-      ),
+      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 14,
-        ),
+        labelStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
         prefixIcon: Icon(icon, color: const Color(0xFF00D4AA), size: 20),
         filled: true,
         fillColor: Colors.grey[50],
@@ -1040,10 +1074,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                 value: value,
                 hint: Text(
                   label,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 14,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
                 isExpanded: true,
                 icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
@@ -1085,11 +1116,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         child: Row(
           children: [
-            Icon(
-              LineIcons.calendar,
-              color: const Color(0xFF00D4AA),
-              size: 20,
-            ),
+            Icon(LineIcons.calendar, color: const Color(0xFF00D4AA), size: 20),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -1097,10 +1124,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -1116,10 +1140,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
                 ],
               ),
             ),
-            Icon(
-              Icons.keyboard_arrow_down,
-              color: Colors.grey[600],
-            ),
+            Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
           ],
         ),
       ),
@@ -1147,10 +1168,7 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
             value: _selectedBranchId,
             decoration: InputDecoration(
               labelText: 'Select Branch',
-              labelStyle: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 14,
-              ),
+              labelStyle: TextStyle(color: Colors.grey[600], fontSize: 14),
               prefixIcon: const Icon(
                 LineIcons.store,
                 color: Color(0xFF00D4AA),
@@ -1221,9 +1239,10 @@ class _CampaignFormDialogState extends ConsumerState<_CampaignFormDialog> {
             style: const TextStyle(color: Colors.red, fontSize: 12),
           ),
         );
-      }
+      },
     );
   }
+
   //now
 }
 
@@ -1330,8 +1349,10 @@ class _CampaignDetailsDialog extends StatelessWidget {
                   children: [
                     _buildDetailRow(
                       'Reward Type',
-                      (reward['reward_type'] as String?)
-                          ?.replaceAll('_', ' ') ??
+                      (reward['reward_type'] as String?)?.replaceAll(
+                            '_',
+                            ' ',
+                          ) ??
                           'N/A',
                     ),
                     if (reward['discount_percentage'] != null)
@@ -1396,7 +1417,9 @@ class _CampaignDetailsDialog extends StatelessWidget {
                     ),
                     _buildDetailRow(
                       'Scope',
-                      reward['is_global'] == true ? 'Global' : 'Branch Specific',
+                      reward['is_global'] == true
+                          ? 'Global'
+                          : 'Branch Specific',
                     ),
                   ],
                 ),
@@ -1428,7 +1451,6 @@ class _CampaignDetailsDialog extends StatelessWidget {
       ),
     );
   }
-
 
   Widget _buildDetailsSection({
     required String title,
@@ -1485,31 +1507,31 @@ class _CampaignDetailsDialog extends StatelessWidget {
           Expanded(
             child: statusColor != null
                 ? Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 4,
-              ),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                value ?? 'N/A',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: statusColor,
-                ),
-              ),
-            )
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      value ?? 'N/A',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: statusColor,
+                      ),
+                    ),
+                  )
                 : Text(
-              value ?? 'N/A',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: Color(0xFF1A1A1A),
-              ),
-            ),
+                    value ?? 'N/A',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF1A1A1A),
+                    ),
+                  ),
           ),
         ],
       ),
@@ -1564,7 +1586,7 @@ class _RewardsTable extends ConsumerWidget {
         child: DataTable(
           columnSpacing: 18,
           headingRowColor: MaterialStateColor.resolveWith(
-                (states) => Colors.grey.shade50,
+            (states) => Colors.grey.shade50,
           ),
           headingRowHeight: 56,
           dataRowHeight: 60,
@@ -1630,13 +1652,10 @@ class _RewardsTable extends ConsumerWidget {
               ),
             ),
           ],
-          rows: List.generate(
-            rewards.length,
-                (index) {
-              final reward = rewards[index];
-              return _buildRewardRow(reward);
-            },
-          ),
+          rows: List.generate(rewards.length, (index) {
+            final reward = rewards[index];
+            return _buildRewardRow(reward);
+          }),
         ),
       ),
     );
@@ -1644,7 +1663,7 @@ class _RewardsTable extends ConsumerWidget {
 
   DataRow _buildRewardRow(Map<String, dynamic> reward) {
     final title = reward['title'] as String? ?? 'N/A';
-    final pointsRequired = reward['points_required'] as int? ?? 0;
+    final pointsRequired = reward['points_required'] as String? ?? 0;
     final rewardType = reward['reward_type'] as String? ?? 'N/A';
     final status = reward['status'] as String? ?? 'INACTIVE';
     final currentRedemptions = reward['current_redemptions'] as int? ?? 0;
@@ -1687,11 +1706,7 @@ class _RewardsTable extends ConsumerWidget {
             ),
           ),
         ),
-        DataCell(
-          Center(
-            child: _RewardTypeBadge(type: rewardType),
-          ),
-        ),
+        DataCell(Center(child: _RewardTypeBadge(type: rewardType))),
         DataCell(
           Center(
             child: _StatusBadge(isActive: isActive, status: status),
@@ -1750,10 +1765,7 @@ class _RewardsTable extends ConsumerWidget {
                         color: Colors.red,
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        'Delete',
-                        style: TextStyle(color: Colors.red),
-                      ),
+                      const Text('Delete', style: TextStyle(color: Colors.red)),
                     ],
                   ),
                   onTap: () => onDelete(reward['id']),
@@ -1829,17 +1841,16 @@ class _StatusBadge extends StatelessWidget {
   final bool isActive;
   final String status;
 
-  const _StatusBadge({
-    required this.isActive,
-    required this.status,
-  });
+  const _StatusBadge({required this.isActive, required this.status});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isActive ? Colors.green.withOpacity(0.2) : Colors.orange.withOpacity(0.2),
+        color: isActive
+            ? Colors.green.withOpacity(0.2)
+            : Colors.orange.withOpacity(0.2),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -1888,7 +1899,7 @@ class _LoadingRewardsTable extends StatelessWidget {
         children: [
           ...List.generate(
             5,
-                (index) => Column(
+            (index) => Column(
               children: [
                 Row(
                   children: [
@@ -1951,10 +1962,7 @@ class _ErrorRewardsTable extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               error,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -1969,10 +1977,7 @@ class _ShimmerBox extends StatefulWidget {
   final double height;
   final double width;
 
-  const _ShimmerBox({
-    required this.height,
-    required this.width,
-  });
+  const _ShimmerBox({required this.height, required this.width});
 
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
@@ -2067,10 +2072,7 @@ class _EmptyRewardsState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'Create your first campaign to get started',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),

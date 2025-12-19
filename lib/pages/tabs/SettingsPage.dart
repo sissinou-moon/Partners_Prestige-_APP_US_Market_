@@ -11,11 +11,16 @@ import 'package:prestige_partners/pages/Settings/ProPlanPage.dart';
 import 'package:prestige_partners/pages/Settings/QrCodePage.dart';
 import 'package:prestige_partners/pages/Settings/ScanQrCodePage.dart';
 import 'package:prestige_partners/pages/Settings/SubscriptionDetailsPage.dart';
+import 'package:prestige_partners/pages/Settings/HelpCenterPage.dart';
+import 'package:prestige_partners/pages/Settings/TermsConditionsPage.dart';
 
 import '../../app/lib/supabase.dart';
+import '../../app/lib/biometric_service.dart';
 import '../../app/providers/partner_provider.dart';
 import '../../app/providers/subscription_provider.dart';
 import '../Settings/ModifyBusinessProfile.dart';
+
+import 'package:prestige_partners/pages/Settings/EditProfilePage.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({Key? key}) : super(key: key);
@@ -44,9 +49,32 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
     super.dispose();
   }
 
+  /// Verify biometric before navigating to a protected screen
+  Future<bool> _verifyBiometric() async {
+    final canAuth = await BiometricService.canAuthenticate();
+    if (!canAuth) {
+      // If biometrics not available, allow access
+      return true;
+    }
+
+    final success = await BiometricService.authenticate(
+      reason: 'Verify your identity to access this section',
+    );
+
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Authentication required to access this section'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+
+    return success;
+  }
+
   @override
   Widget build(BuildContext context) {
-
     final user = ref.read(userProvider);
     final subscription = ref.watch(subscriptionProvider);
 
@@ -58,54 +86,76 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
         children: [
           _buildSection(
             children: [
-              if(user!['role'] == "OWNER") _buildSettingsTile(
-                icon: LineIcons.store,
-                title: 'Business Profile',
-                subtitle: 'Manage your business information',
+              _buildSettingsTile(
+                icon: LineIcons.userEdit,
+                title: 'Edit Profile',
+                subtitle: 'Update personal information',
                 index: 0,
                 onTap: () async {
-                  // Get partner data from your provider
-                  final partner = ref.read(partnerProvider);
-
-                  if (partner != null) {
-                    final partnerObj = Partner.fromJson(partner);
+                  // Require biometric verification for Edit Profile
+                  final verified = await _verifyBiometric();
+                  if (verified && mounted) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => BusinessProfilePage(partner: partnerObj),
+                        builder: (_) => const EditProfilePage(),
                       ),
                     );
                   }
                 },
               ),
-              if(user['role'] == "OWNER") _buildSettingsTile(
-                icon: LineIcons.mapMarker,
-                title: 'Locations',
-                subtitle: 'Manage business locations',
-                index: 1,
-                onTap: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => LocationsPage(),
-                    ),
-                  );
-                },
-              ),
-              if(user['tier'] != 'Starter' && user['tier'] != 'none') _buildSettingsTile(
-                icon: LineIcons.user,
-                title: 'Customers',
-                subtitle: 'Manage business customers',
-                index: 1,
-                onTap: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => CustomersPage(),
-                    ),
-                  );
-                },
-              ),
+              if (user!['role'] == "OWNER")
+                _buildSettingsTile(
+                  icon: LineIcons.store,
+                  title: 'Business Profile',
+                  subtitle: 'Manage your business information',
+                  index: 0,
+                  onTap: () async {
+                    // Require biometric verification for Business Profile
+                    final verified = await _verifyBiometric();
+                    if (!verified) return;
+
+                    // Get partner data from your provider
+                    final partner = ref.read(partnerProvider);
+
+                    if (partner != null && mounted) {
+                      final partnerObj = Partner.fromJson(partner);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              BusinessProfilePage(partner: partnerObj),
+                        ),
+                      );
+                    }
+                  },
+                ),
+              if (user['role'] == "OWNER")
+                _buildSettingsTile(
+                  icon: LineIcons.mapMarker,
+                  title: 'Locations',
+                  subtitle: 'Manage business locations',
+                  index: 1,
+                  onTap: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => LocationsPage()),
+                    );
+                  },
+                ),
+              if (user['tier'] != 'Starter' && user['tier'] != 'none')
+                _buildSettingsTile(
+                  icon: LineIcons.user,
+                  title: 'Customers',
+                  subtitle: 'Manage business customers',
+                  index: 1,
+                  onTap: () async {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => CustomersPage()),
+                    );
+                  },
+                ),
               _buildSettingsTile(
                 icon: LineIcons.bell,
                 title: 'Notifications',
@@ -113,11 +163,9 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 index: 3,
                 onTap: () async {
                   Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => NotificationsPage(),
-                      ),
-                    );
+                    context,
+                    MaterialPageRoute(builder: (_) => NotificationsPage()),
+                  );
                 },
               ),
             ],
@@ -127,29 +175,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
             children: [
               _buildSettingsTile(
                 icon: LineIcons.qrcode,
-                title: 'Generate QrCode',
-                subtitle: 'Generate qrcode for your existing rewards',
-                index: 5,
-                onTap: () async {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => QRGeneratorPage(),
-                    ),
-                  );
-                },
-              ),
-              _buildSettingsTile(
-                icon: LineIcons.qrcode,
-                title: 'Scan Manually',
+                title: 'Checkout',
                 subtitle: 'Scan your customers qr code for redemption',
                 index: 5,
                 onTap: () async {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => QRScannerPage(),
-                    ),
+                    MaterialPageRoute(builder: (_) => QRScannerPage()),
                   );
                 },
               ),
@@ -161,9 +193,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 onTap: () async {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => IntegrationPage(),
-                    ),
+                    MaterialPageRoute(builder: (_) => IntegrationPage()),
                   );
                 },
               ),
@@ -171,14 +201,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 icon: LineIcons.creditCard,
                 title: 'Billing & Subscription',
                 subtitle: 'Manage your plan and payments',
-                index: 6,
+                index: 8,
                 onTap: () async {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (_) {
-                        if(subscription != null && subscription.plan != null) {
-                          return SubscriptionDetailsPage(planName: subscription.plan!);
+                        if (subscription != null && subscription.plan != null) {
+                          return SubscriptionDetailsPage(
+                            planName: subscription.plan!,
+                          );
                         } else {
                           return PricingPage();
                         }
@@ -188,12 +220,30 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                 },
               ),
               _buildSettingsTile(
+                icon: LineIcons.fileContract,
+                title: 'Terms & Conditions',
+                subtitle: 'Read our terms of service',
+                index: 6,
+                onTap: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const TermsConditionsPage(),
+                    ),
+                  );
+                },
+              ),
+              _buildSettingsTile(
                 icon: LineIcons.questionCircle,
-                title: 'Support',
-                subtitle: 'Get help and contact us',
+                title: 'Help Center',
+                subtitle: 'Get support and view FAQs',
                 index: 7,
-                isLast: true,
-                onTap: () => _navigateTo(context, 'Support'),
+                onTap: () async {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const HelpCenterPage()),
+                  );
+                },
               ),
             ],
           ),
@@ -230,9 +280,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
           ),
         ],
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -247,14 +295,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
     return AnimatedBuilder(
       animation: _animationController,
       builder: (context, child) {
+        final double start = (index * 0.05).clamp(0.0, 1.0);
+        final double end = (start + 0.3).clamp(0.0, 1.0);
+
         final animation = Tween<double>(begin: 0.0, end: 1.0).animate(
           CurvedAnimation(
             parent: _animationController,
-            curve: Interval(
-              index * 0.1,
-              (index * 0.1) + 0.3,
-              curve: Curves.easeOutCubic,
-            ),
+            curve: Interval(start, end, curve: Curves.easeOutCubic),
           ),
         );
 
@@ -282,11 +329,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
             decoration: BoxDecoration(
               border: !isLast
                   ? Border(
-                bottom: BorderSide(
-                  color: Colors.grey[100]!,
-                  width: 1,
-                ),
-              )
+                      bottom: BorderSide(color: Colors.grey[100]!, width: 1),
+                    )
                   : null,
             ),
             child: Row(
@@ -298,11 +342,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                     color: Colors.grey.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    icon,
-                    color: _getIconColor(index),
-                    size: 17,
-                  ),
+                  child: Icon(icon, color: _getIconColor(index), size: 17),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -331,11 +371,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
                     ],
                   ),
                 ),
-                Icon(
-                  LineIcons.angleRight,
-                  color: Colors.grey[400],
-                  size: 20,
-                ),
+                Icon(LineIcons.angleRight, color: Colors.grey[400], size: 20),
               ],
             ),
           ),
@@ -361,12 +397,16 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
   void _navigateTo(BuildContext context, String title) {
     Navigator.of(context).push(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => PlaceholderPage(title: title),
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            PlaceholderPage(title: title),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
           const curve = Curves.easeInOutCubic;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           var offsetAnimation = animation.drive(tween);
           return SlideTransition(position: offsetAnimation, child: child);
         },

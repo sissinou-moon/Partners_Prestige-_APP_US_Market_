@@ -14,6 +14,7 @@ import 'package:prestige_partners/pages/tabs/MembersPage.dart';
 import 'package:prestige_partners/pages/tabs/StorePage.dart';
 import '../../app/providers/subscription_provider.dart';
 import '../../app/providers/user_provider.dart';
+import '../../app/providers/biometric_provider.dart';
 import 'HomePage.dart';
 import 'SettingsPage.dart';
 
@@ -48,7 +49,6 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     'Settings',
   ];
 
-
   final List<String> _cashierPageTitles = [
     'Dashboard',
     'Store',
@@ -68,7 +68,17 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
   void initState() {
     super.initState();
 
-    Future.delayed(Duration(milliseconds: 500), () {final token = ref.watch(tokenProvider).value ?? "";});
+    Future.delayed(Duration(milliseconds: 500), () {
+      final token = ref.watch(tokenProvider).value ?? "";
+    });
+  }
+
+  bool _isMounted = true;
+
+  @override
+  void dispose() {
+    _isMounted = false;
+    super.dispose();
   }
 
   @override
@@ -93,24 +103,37 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(130), // Increased height for more space
+        preferredSize: const Size.fromHeight(
+          130,
+        ), // Increased height for more space
         child: AppBar(
-          backgroundColor: const Color(0xFF00B894),
+          backgroundColor: const Color(0xFF13B386),
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.vertical(
-              bottom: Radius.circular(30),
-            ),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
           ),
           leading: Builder(
             builder: (context) => Padding(
-              padding: const EdgeInsets.only(top: 30),
+              padding: const EdgeInsets.only(top: 25),
               child: IconButton(
                 icon: const Icon(Icons.menu, color: Colors.white),
                 onPressed: () => Scaffold.of(context).openDrawer(),
               ),
             ),
           ),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(top: 25),
+              child: IconButton(
+                icon: Icon(LineIcons.qrcode, color: Colors.white),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (context) => QRGeneratorPage()),
+                  );
+                },
+              ),
+            ),
+          ],
           flexibleSpace: SafeArea(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(70, 20, 20, 20),
@@ -135,11 +158,16 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                     child: CircleAvatar(
                       radius: 30, // Slightly larger
                       backgroundColor: Colors.white.withOpacity(0.15),
-                      backgroundImage: profileImage != null && profileImage.isNotEmpty
+                      backgroundImage:
+                          profileImage != null && profileImage.isNotEmpty
                           ? NetworkImage(profileImage)
                           : null,
                       child: profileImage == null || profileImage.isEmpty
-                          ? const Icon(Icons.person, size: 32, color: Colors.white)
+                          ? const Icon(
+                              Icons.person,
+                              size: 32,
+                              color: Colors.white,
+                            )
                           : null,
                     ),
                   ),
@@ -151,21 +179,21 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          'Hi, $fullName',
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                            shadows: [
-                              Shadow(
-                                blurRadius: 4,
-                                color: Colors.black12,
-                              ),
-                            ],
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width * 0.5,
+                          child: Text(
+                            'Hi, $fullName',
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(blurRadius: 4, color: Colors.black12),
+                              ],
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
 
                         const SizedBox(height: 5),
@@ -178,10 +206,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                             fontSize: 14,
                             color: Colors.white.withOpacity(0.85),
                             shadows: [
-                              Shadow(
-                                blurRadius: 3,
-                                color: Colors.black12,
-                              ),
+                              Shadow(blurRadius: 3, color: Colors.black12),
                             ],
                           ),
                           maxLines: 1,
@@ -193,13 +218,18 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                         // ✨ SHINING TIER BADGE ✨
                         if (user?['tier'] != null && user!['tier'] != 'none')
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
                               gradient: _getTierGradient(user!['tier']),
                               borderRadius: BorderRadius.circular(25),
                               boxShadow: [
                                 BoxShadow(
-                                  color: _getTierColor(user!['tier']).withOpacity(0.4),
+                                  color: _getTierColor(
+                                    user!['tier'],
+                                  ).withOpacity(0.4),
                                   blurRadius: 8,
                                   spreadRadius: 1,
                                   offset: const Offset(0, 2),
@@ -265,9 +295,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
             // Modern Drawer Header
             Container(
               width: double.infinity,
-              decoration: const BoxDecoration(
-                color: Color(0xFF00B894),
-              ),
+              decoration: const BoxDecoration(color: Color(0xFF13B386)),
               child: SafeArea(
                 bottom: false,
                 child: Padding(
@@ -294,11 +322,16 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white.withOpacity(0.2),
-                          backgroundImage: profileImage != null && profileImage.isNotEmpty
+                          backgroundImage:
+                              profileImage != null && profileImage.isNotEmpty
                               ? NetworkImage(profileImage)
                               : null,
                           child: profileImage == null || profileImage.isEmpty
-                              ? const Icon(Icons.person, size: 40, color: Colors.white)
+                              ? const Icon(
+                                  Icons.person,
+                                  size: 40,
+                                  color: Colors.white,
+                                )
                               : null,
                         ),
                       ),
@@ -315,7 +348,10 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                       const SizedBox(height: 4),
                       // Role Badge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
@@ -351,7 +387,9 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    businessName == 'Business' ? partner!['partner']['business_name'] : '',
+                                    businessName == 'Business'
+                                        ? partner!['partner']['business_name']
+                                        : '',
                                     style: TextStyle(
                                       color: Colors.white.withOpacity(0.9),
                                       fontSize: 14,
@@ -383,109 +421,114 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
             ),
 
             // Navigation Items
-            user!['role'] != "CASHIER" ? Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  _buildDrawerItem(
-                    icon: LineIcons.home,
-                    title: 'Dashboard',
-                    index: 0,
-                    isSelected: _selectedIndex == 0,
-                  ),
-                  _buildDrawerItem(
-                    icon: LineIcons.store,
-                    title: 'Store',
-                    index: 1,
-                    isSelected: _selectedIndex == 1,
-                  ),
-                  if(user['role'] != "MANAGER" || user['role'] != "CASHIER") _buildDrawerItem(
-                    icon: LineIcons.users,
-                    title: 'Members',
-                    index: 2,
-                    isSelected: _selectedIndex == 2,
-                  ),
-                  _buildDrawerItem(
-                    icon: LineIcons.bullhorn,
-                    title: 'Campaigns',
-                    index: 3,
-                    isSelected: _selectedIndex == 3,
-                  ),
-                  _buildDrawerItem(
-                    icon: LineIcons.cog,
-                    title: 'Settings',
-                    index: 4,
-                    isSelected: _selectedIndex == 4,
-                  ),
+            user!['role'] != "CASHIER"
+                ? Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        _buildDrawerItem(
+                          icon: LineIcons.home,
+                          title: 'Dashboard',
+                          index: 0,
+                          isSelected: _selectedIndex == 0,
+                        ),
+                        _buildDrawerItem(
+                          icon: LineIcons.store,
+                          title: 'Store',
+                          index: 1,
+                          isSelected: _selectedIndex == 1,
+                        ),
+                        if (user['role'] != "MANAGER" ||
+                            user['role'] != "CASHIER")
+                          _buildDrawerItem(
+                            icon: LineIcons.users,
+                            title: 'Members',
+                            index: 2,
+                            isSelected: _selectedIndex == 2,
+                          ),
+                        _buildDrawerItem(
+                          icon: LineIcons.bullhorn,
+                          title: 'Campaigns',
+                          index: 3,
+                          isSelected: _selectedIndex == 3,
+                        ),
+                        _buildDrawerItem(
+                          icon: LineIcons.cog,
+                          title: 'Settings',
+                          index: 4,
+                          isSelected: _selectedIndex == 4,
+                        ),
 
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    child: Divider(),
-                  ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 8,
+                          ),
+                          child: Divider(),
+                        ),
 
-                  // Business Info Section
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    child: Text(
-                      'Business Information',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
+                        // Business Info Section
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                          child: Text(
+                            'Business Information',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
 
-                  if (email != null)
-                    _buildInfoTile(
-                      icon: FluentIcons.mail_20_regular,
-                      text: email,
+                        if (email != null)
+                          _buildInfoTile(
+                            icon: FluentIcons.mail_20_regular,
+                            text: email,
+                          ),
+                        if (phone != null)
+                          _buildInfoTile(
+                            icon: FluentIcons.phone_20_regular,
+                            text: phone,
+                          ),
+                        if (website != null)
+                          _buildInfoTile(
+                            icon: FluentIcons.globe_20_regular,
+                            text: website,
+                          ),
+                        if (address != null && city != null && state != null)
+                          _buildInfoTile(
+                            icon: FluentIcons.location_20_regular,
+                            text: '$address, $city, $state',
+                          ),
+                      ],
                     ),
-                  if (phone != null)
-                    _buildInfoTile(
-                      icon: FluentIcons.phone_20_regular,
-                      text: phone,
+                  )
+                : Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      children: [
+                        _buildDrawerItem(
+                          icon: LineIcons.home,
+                          title: 'Generate QRCode',
+                          index: 0,
+                          isSelected: _selectedIndex == 0,
+                        ),
+                        _buildDrawerItem(
+                          icon: LineIcons.store,
+                          title: 'Scan QRCode',
+                          index: 1,
+                          isSelected: _selectedIndex == 1,
+                        ),
+                      ],
                     ),
-                  if (website != null)
-                    _buildInfoTile(
-                      icon: FluentIcons.globe_20_regular,
-                      text: website,
-                    ),
-                  if (address != null && city != null && state != null)
-                    _buildInfoTile(
-                      icon: FluentIcons.location_20_regular,
-                      text: '$address, $city, $state',
-                    ),
-                ],
-              ),
-            ) : Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                children: [
-                  _buildDrawerItem(
-                    icon: LineIcons.home,
-                    title: 'Generate QRCode',
-                    index: 0,
-                    isSelected: _selectedIndex == 0,
                   ),
-                  _buildDrawerItem(
-                    icon: LineIcons.store,
-                    title: 'Scan QRCode',
-                    index: 1,
-                    isSelected: _selectedIndex == 1,
-                  ),
-                ],
-              ),
-            ),
 
             // Logout Button
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
-                ),
+                border: Border(top: BorderSide(color: Colors.grey.shade200)),
               ),
               child: Material(
                 color: Colors.red.shade50,
@@ -493,26 +536,29 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
                   onTap: () async {
-
-                    // Navigate to RootLayout
                     Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const SignInPage())
+                      context,
+                      MaterialPageRoute(builder: (_) => const SignInPage()),
                     );
 
-                    Future.delayed(Duration(milliseconds: 500), () async {
-                      // Clear subscription from provider AND local storage
-                      await ref.read(subscriptionProvider.notifier).clearSubscription();
+                    // Wait for navigation animation
+                    await Future.delayed(const Duration(milliseconds: 300));
 
-                      // Clear user provider
+                    if (_isMounted) {
+                      // Reset biometric session on logout
+                      ref.read(biometricSessionProvider.notifier).state = false;
+                      await ref
+                          .read(subscriptionProvider.notifier)
+                          .clearSubscription();
                       ref.invalidate(userProvider);
-
-                      // Remove token from local storage
                       await LocalStorage.removeToken();
-                    });
+                    }
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
                     child: Row(
                       children: [
                         Icon(
@@ -536,12 +582,13 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
               ),
             ),
 
-            const SizedBox(height: 10,),
-
+            const SizedBox(height: 10),
           ],
         ),
       ),
-      body: user['role'] != "CASHIER" ? _pages[_selectedIndex] : _CashierPages[_selectedIndex],
+      body: user['role'] != "CASHIER"
+          ? _pages[_selectedIndex]
+          : _CashierPages[_selectedIndex],
     );
   }
 
@@ -648,7 +695,9 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
       child: Material(
-        color: isSelected ? Color(0xFF00B894).withOpacity(0.1) : Colors.transparent,
+        color: isSelected
+            ? Color(0xFF13B386).withOpacity(0.1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           borderRadius: BorderRadius.circular(10),
@@ -665,7 +714,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
               children: [
                 Icon(
                   icon,
-                  color: isSelected ? Color(0xFF00B894) : Colors.grey[400],
+                  color: isSelected ? Color(0xFF13B386) : Colors.grey[400],
                   size: 20,
                 ),
                 const SizedBox(width: 18),
@@ -674,7 +723,7 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                    color: isSelected ? Color(0xFF00B894) : Colors.grey[400],
+                    color: isSelected ? Color(0xFF13B386) : Colors.grey[400],
                     letterSpacing: 0.2,
                   ),
                 ),
@@ -686,20 +735,13 @@ class _MaintablayoutState extends ConsumerState<Maintablayout> {
     );
   }
 
-  Widget _buildInfoTile({
-    required IconData icon,
-    required String text,
-  }) {
+  Widget _buildInfoTile({required IconData icon, required String text}) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 18,
-            color: Colors.grey[600],
-          ),
+          Icon(icon, size: 18, color: Colors.grey[600]),
           const SizedBox(width: 12),
           Expanded(
             child: Text(

@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class RewardService {
-  static const String baseUrl = "https://usprestigeplusrewardsapp-production.up.railway.app/api/db";
+  static const String baseUrl =
+      "https://usprestigeplusrewardsapp-production.up.railway.app/api/db";
   final String token;
 
   RewardService(this.token);
@@ -13,9 +14,9 @@ class RewardService {
     "Authorization": "Bearer $token",
   };
 
-
-
-  static Future<List<Map<String, dynamic>>> getPartnerRewards(String partnerId) async {
+  static Future<List<Map<String, dynamic>>> getPartnerRewards(
+    String partnerId,
+  ) async {
     final url = Uri.parse("$baseUrl/get/partner_rewards?partner_id=$partnerId");
 
     final response = await http.get(url);
@@ -34,7 +35,9 @@ class RewardService {
   }
 
   // Create Reward
-  Future<Map<String, dynamic>> createReward(Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> createReward(
+    Map<String, dynamic> payload,
+  ) async {
     final res = await http.post(
       Uri.parse("$baseUrl/rewards"),
       headers: headers,
@@ -46,7 +49,9 @@ class RewardService {
 
   // Update Reward
   Future<Map<String, dynamic>> updateReward(
-      String rewardId, Map<String, dynamic> payload) async {
+    String rewardId,
+    Map<String, dynamic> payload,
+  ) async {
     final res = await http.put(
       Uri.parse("$baseUrl/rewards/$rewardId"),
       headers: headers,

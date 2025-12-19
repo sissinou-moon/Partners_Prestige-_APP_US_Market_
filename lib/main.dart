@@ -5,9 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'Root.dart';
 import 'app/providers/subscription_provider.dart';
+import 'widgets/connectivity_overlay.dart';
 
-final publish_key = "pk_test_51SXKwQ2fFh79gGsX6Kz76UZtnWvLapdC1pS2wI1hs01UA5PY0FlxViVjHSk2z8gKCec7SufHrvwNv5eS9vNJkJvH00hq5zS9Ba";
-final secret_key = "sk_test_51SXKwQ2fFh79gGsX9AFz1EQd8zQT8ccJFrW6IOuqwDjCPJhxCLYnevdvXDBPEX7ew31BJMKWrL646LMZPO263GLi00tf32PSEV";
+final publish_key =
+    "pk_test_51SXKwQ2fFh79gGsX6Kz76UZtnWvLapdC1pS2wI1hs01UA5PY0FlxViVjHSk2z8gKCec7SufHrvwNv5eS9vNJkJvH00hq5zS9Ba";
+final secret_key =
+    "sk_test_51SXKwQ2fFh79gGsX9AFz1EQd8zQT8ccJFrW6IOuqwDjCPJhxCLYnevdvXDBPEX7ew31BJMKWrL646LMZPO263GLi00tf32PSEV";
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,6 +40,9 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Prestige+',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return ConnectivityOverlay(child: child!);
+      },
       home: RootLayout(),
     );
   }

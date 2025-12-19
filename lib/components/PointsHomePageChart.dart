@@ -5,12 +5,16 @@ class PointsChart extends StatefulWidget {
   final Map<String, List<Map<String, dynamic>>>? branchData;
   final bool isLoading;
   final String? errorMessage;
+  final String period;
+  final Function(String) onPeriodChanged;
 
   const PointsChart({
     super.key,
     this.branchData,
     this.isLoading = false,
     this.errorMessage,
+    required this.period,
+    required this.onPeriodChanged,
   });
 
   @override
@@ -48,7 +52,8 @@ class _PointsChartState extends State<PointsChart> {
 
   void _initializeSelectedBranch() {
     if (widget.branchData != null && widget.branchData!.isNotEmpty) {
-      if (selectedBranch == null || !widget.branchData!.containsKey(selectedBranch)) {
+      if (selectedBranch == null ||
+          !widget.branchData!.containsKey(selectedBranch)) {
         selectedBranch = widget.branchData!.keys.first;
       }
     }
@@ -91,11 +96,11 @@ class _PointsChartState extends State<PointsChart> {
           else if (widget.errorMessage != null)
             _buildErrorState()
           else if (widget.branchData == null || widget.branchData!.isEmpty)
-              _buildEmptyState()
-            else if (currentData.isEmpty)
-                _buildEmptyState(message: 'No data for selected branch')
-              else
-                _buildChart(),
+            _buildEmptyState()
+          else if (currentData.isEmpty)
+            _buildEmptyState(message: 'No data for selected branch')
+          else
+            _buildChart(),
         ],
       ),
     );
@@ -105,13 +110,21 @@ class _PointsChartState extends State<PointsChart> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          showEarned ? "Points Earned" : "Points Redeemed",
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1A1A1A),
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                showEarned ? "Points Earned" : "Points Redeemed",
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+            ),
+            // Period Selector
+            _buildPeriodSelector(),
+          ],
         ),
         const SizedBox(height: 4),
         Text(
@@ -120,30 +133,34 @@ class _PointsChartState extends State<PointsChart> {
               : currentData.isEmpty
               ? "No entries available"
               : "Last ${currentData.length} ${currentData.length == 1 ? 'entry' : 'entries'}",
-          style: TextStyle(
-            fontSize: 13,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
         ),
       ],
     );
   }
 
   Widget _buildControls() {
-    if (widget.isLoading || widget.errorMessage != null || widget.branchData == null || widget.branchData!.isEmpty) {
-      return const SizedBox.shrink();
-    }
+    // We want to show controls even if loading/empty so user can change period,
+    // unless it matches no data at all (e.g. initial load error).
+    // If branchData is null/empty, we can't show branch dropdown, but should show period dropdown.
 
-    return Row(
-      children: [
-        // Branch dropdown
-        Expanded(
-          child: _buildBranchDropdown(),
-        ),
-        const SizedBox(width: 12),
-        // Toggle button
-        _buildToggleButton(),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          // Branch dropdown
+          if (widget.branchData != null && widget.branchData!.isNotEmpty) ...[
+            SizedBox(width: 200, child: _buildBranchDropdown()),
+            const SizedBox(width: 12),
+          ],
+
+          // Period Selector
+          //_buildPeriodSelector(),
+
+          // Toggle button
+          _buildToggleButton(),
+        ],
+      ),
     );
   }
 
@@ -151,13 +168,11 @@ class _PointsChartState extends State<PointsChart> {
     final branches = widget.branchData!.keys.toList();
 
     return Container(
+      height: 40,
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.grey.shade200,
-          width: 1.5,
-        ),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 12),
       child: DropdownButtonHideUnderline(
@@ -200,25 +215,27 @@ class _PointsChartState extends State<PointsChart> {
                       maxLines: 1,
                     ),
                   ),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 2,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$dataCount',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey[600],
+                  if (dataCount > 0) ...[
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        '$dataCount',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             );
@@ -235,8 +252,61 @@ class _PointsChartState extends State<PointsChart> {
     );
   }
 
+  Widget _buildPeriodSelector() {
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200, width: 1.5),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: widget.period,
+          icon: Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Colors.grey[700],
+            size: 22,
+          ),
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[800],
+          ),
+          dropdownColor: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          onChanged: (String? newValue) {
+            if (newValue != null) {
+              widget.onPeriodChanged(newValue);
+            }
+          },
+          items: ['week', 'month', 'year'].map<DropdownMenuItem<String>>((
+            String value,
+          ) {
+            String label;
+            switch (value) {
+              case 'month':
+                label = 'Month';
+                break;
+              case 'year':
+                label = 'Year';
+                break;
+              case 'week':
+              default:
+                label = 'Week';
+                break;
+            }
+            return DropdownMenuItem<String>(value: value, child: Text(label));
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
   Widget _buildToggleButton() {
     return Container(
+      height: 40,
       decoration: BoxDecoration(
         color: showEarned
             ? const Color(0xFF00D4AA).withOpacity(0.1)
@@ -377,9 +447,11 @@ class _PointsChartState extends State<PointsChart> {
               ),
             ),
             topTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+              sideTitles: SideTitles(showTitles: false),
+            ),
             rightTitles: const AxisTitles(
-                sideTitles: SideTitles(showTitles: false)),
+              sideTitles: SideTitles(showTitles: false),
+            ),
           ),
           borderData: FlBorderData(show: false),
           lineBarsData: [
@@ -421,7 +493,9 @@ class _PointsChartState extends State<PointsChart> {
               getTooltipColor: (touchedSpot) => Colors.white,
               tooltipBorderRadius: BorderRadius.circular(8),
               tooltipPadding: const EdgeInsets.symmetric(
-                  horizontal: 12, vertical: 8),
+                horizontal: 12,
+                vertical: 8,
+              ),
               tooltipBorder: BorderSide(
                 color: Colors.grey.withOpacity(0.2),
                 width: 1,
@@ -458,10 +532,11 @@ class _PointsChartState extends State<PointsChart> {
               return spotIndexes.map((index) {
                 return TouchedSpotIndicatorData(
                   FlLine(
-                    color: (showEarned
-                        ? const Color(0xFF00D4AA)
-                        : const Color(0xFFFF6B9D))
-                        .withOpacity(0.3),
+                    color:
+                        (showEarned
+                                ? const Color(0xFF00D4AA)
+                                : const Color(0xFFFF6B9D))
+                            .withOpacity(0.3),
                     strokeWidth: 2,
                     dashArray: [5, 5],
                   ),
@@ -522,9 +597,7 @@ class _PointsChartState extends State<PointsChart> {
                           color: Colors.grey.shade50,
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: CustomPaint(
-                          painter: _SkeletonChartPainter(),
-                        ),
+                        child: CustomPaint(painter: _SkeletonChartPainter()),
                       ),
                     ),
                   ],
@@ -613,10 +686,7 @@ class _PointsChartState extends State<PointsChart> {
             const SizedBox(height: 8),
             Text(
               'Chart data will appear here once available',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.grey[500],
-              ),
+              style: TextStyle(fontSize: 13, color: Colors.grey[500]),
             ),
           ],
         ),
@@ -657,10 +727,7 @@ class _PointsChartState extends State<PointsChart> {
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Text(
                 widget.errorMessage ?? 'An error occurred',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 textAlign: TextAlign.center,
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,

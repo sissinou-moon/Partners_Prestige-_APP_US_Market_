@@ -22,22 +22,24 @@ class _PricingPageState extends ConsumerState<PricingPage> {
 
   @override
   Widget build(BuildContext context) {
-
     final partner = ref.read(partnerProvider);
 
     return Consumer(
-        builder: (context, ref, child) {
-          // This will cause rebuild when subscription changes
-          final subscriptionState = ref.watch(subscriptionProvider);
-          print("Subscription state updated: ${subscriptionState.hasSubscription}");
+      builder: (context, ref, child) {
+        // This will cause rebuild when subscription changes
+        final subscriptionState = ref.watch(subscriptionProvider);
+        print(
+          "Subscription state updated: ${subscriptionState.hasSubscription}",
+        );
 
+        final subscription = ref.watch(subscriptionProvider);
+        final isLoading = subscription.isLoading;
+        final hasSubscription = subscription.hasSubscription;
+        final currentPlan = subscription.plan;
 
-          final subscription = ref.watch(subscriptionProvider);
-          final isLoading = subscription.isLoading;
-          final hasSubscription = subscription.hasSubscription;
-          final currentPlan = subscription.plan;
-
-          print("Button state - hasSubscription: $hasSubscription, currentPlan: $currentPlan");
+        print(
+          "Button state - hasSubscription: $hasSubscription, currentPlan: $currentPlan",
+        );
 
         return Scaffold(
           backgroundColor: Colors.grey[50],
@@ -75,7 +77,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -91,28 +93,6 @@ class _PricingPageState extends ConsumerState<PricingPage> {
               fontWeight: FontWeight.w500,
             ),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildToggleButton('Monthly', !isAnnual),
-                _buildToggleButton('Annual (Save 15%)', isAnnual),
-              ],
-            ),
           ),
         ],
       ),
@@ -167,7 +147,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
           _Feature('Custom branding', false),
           _Feature('API access', false),
         ],
-        priceId: 'price_1SZqIl2fFh79gGsXOtDzRPfX'
+        priceId: 'price_1SZqIl2fFh79gGsXOtDzRPfX',
       ),
       _TierData(
         name: 'Growth',
@@ -224,7 +204,8 @@ class _PricingPageState extends ConsumerState<PricingPage> {
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
         itemCount: tiers.length,
-        itemBuilder: (context, index) => _buildTierCard(tiers[index], partnerEmail),
+        itemBuilder: (context, index) =>
+            _buildTierCard(tiers[index], partnerEmail),
       ),
     );
   }
@@ -254,7 +235,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-         Expanded(
+          Expanded(
             child: Padding(
               padding: const EdgeInsets.all(20),
               child: Column(
@@ -337,28 +318,30 @@ class _PricingPageState extends ConsumerState<PricingPage> {
                         final hasSubscription = subscription.hasSubscription;
                         final currentPlan = subscription.plan;
 
-                        final isCurrentPlan = hasSubscription && currentPlan == tier.name;
+                        final isCurrentPlan =
+                            hasSubscription && currentPlan == tier.name;
 
                         return ElevatedButton(
-                          onPressed: isLoading
-                              ? null
-                              : () async {
-                            if (isCurrentPlan) {
-                              // Navigate to subscription details
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => SubscriptionDetailsPage(
-                                    subscriptionData: subscription.data,
-                                    planName: tier.name,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              final token = await LocalStorage.getToken();
-                              showSubscriptionSheet(context, token!, partnerEmail, tier);
-                            }
-                          },
+                          //onPressed: isLoading
+                          //    ? null
+                          //    : () async {
+                          //  if (isCurrentPlan) {
+                          //    // Navigate to subscription details
+                          //    Navigator.push(
+                          //      context,
+                          //      MaterialPageRoute(
+                          //        builder: (context) => SubscriptionDetailsPage(
+                          //          subscriptionData: subscription.data,
+                          //          planName: tier.name,
+                          //        ),
+                          //      ),
+                          //    );
+                          //  } else {
+                          //    final token = await LocalStorage.getToken();
+                          //    showSubscriptionSheet(context, token!, partnerEmail, tier);
+                          //  }
+                          //},
+                          onPressed: () {},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isCurrentPlan
                                 ? Colors.green[50]
@@ -372,23 +355,29 @@ class _PricingPageState extends ConsumerState<PricingPage> {
                           ),
                           child: isLoading
                               ? SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                isCurrentPlan ? Colors.green[700]! : Colors.white,
-                              ),
-                            ),
-                          )
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      isCurrentPlan
+                                          ? Colors.green[700]!
+                                          : Colors.white,
+                                    ),
+                                  ),
+                                )
                               : Text(
-                            isCurrentPlan ? 'Manage Subscription' : 'Get Started',
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: isCurrentPlan ? Colors.green[700] : Colors.white,
-                            ),
-                          ),
+                                  isCurrentPlan
+                                      ? 'Manage Subscription'
+                                      : 'Get Started',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: isCurrentPlan
+                                        ? Colors.green[700]
+                                        : Colors.white,
+                                  ),
+                                ),
                         );
                       },
                     ),
@@ -485,11 +474,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
         children: [
           Row(
             children: [
-              const Icon(
-                LineIcons.thList,
-                color: Color(0xFF00D4AA),
-                size: 22,
-              ),
+              const Icon(LineIcons.thList, color: Color(0xFF00D4AA), size: 22),
               const SizedBox(width: 12),
               const Text(
                 'Feature Comparison',
@@ -512,10 +497,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
             border: TableBorder(
               horizontalInside: BorderSide(color: Colors.grey[200]!, width: 1),
             ),
-            children: [
-              _buildTableHeader(),
-              ..._buildTableRows(),
-            ],
+            children: [_buildTableHeader(), ..._buildTableRows()],
           ),
         ],
       ),
@@ -526,9 +508,9 @@ class _PricingPageState extends ConsumerState<PricingPage> {
     return TableRow(
       children: [
         _tableCell('Feature', isHeader: true),
-        _tableCell('Bronze', isHeader: true, color: const Color(0xFFD97706)),
-        _tableCell('Silver', isHeader: true, color: const Color(0xFF64748B)),
-        _tableCell('Gold', isHeader: true, color: const Color(0xFFEAB308)),
+        _tableCell('Starter', isHeader: true, color: const Color(0xFFD97706)),
+        _tableCell('Growth', isHeader: true, color: const Color(0xFF64748B)),
+        _tableCell('Premier', isHeader: true, color: const Color(0xFFEAB308)),
       ],
     );
   }
@@ -545,9 +527,7 @@ class _PricingPageState extends ConsumerState<PricingPage> {
     ];
 
     return data.map((row) {
-      return TableRow(
-        children: row.map((cell) => _tableCell(cell)).toList(),
-      );
+      return TableRow(children: row.map((cell) => _tableCell(cell)).toList());
     }).toList();
   }
 
@@ -567,7 +547,12 @@ class _PricingPageState extends ConsumerState<PricingPage> {
   }
 
   // Show subscription bottom sheet
-  void showSubscriptionSheet(BuildContext context, String token, String partnerEmail, _TierData tier) {
+  void showSubscriptionSheet(
+    BuildContext context,
+    String token,
+    String partnerEmail,
+    _TierData tier,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -582,7 +567,6 @@ class _PricingPageState extends ConsumerState<PricingPage> {
       ),
     );
   }
-
 }
 
 class _TierData {

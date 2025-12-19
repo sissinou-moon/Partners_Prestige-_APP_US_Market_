@@ -79,7 +79,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       final updates = _notificationSettings;
       print(updates);
 
-      await PartnerService.updateNotificationSettings(userId: userId, notifications: updates, token: token!);
+      await PartnerService.updateNotificationSettings(
+        userId: userId,
+        notifications: updates,
+        token: token!,
+      );
 
       // Simulate API call
       await Future.delayed(const Duration(seconds: 1));
@@ -87,10 +91,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       // Update the provider
       ref.read(userProvider.notifier).update((state) {
         if (state == null) return state;
-        return {
-          ...state,
-          'notifications': _notificationSettings,
-        };
+        return {...state, 'notifications': _notificationSettings};
       });
 
       if (mounted) {
@@ -219,7 +220,8 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   _buildNotificationToggle(
                     key: 'email only',
                     title: 'Email Only',
-                    description: 'Receive notifications via email instead of in-app alerts',
+                    description:
+                        'Receive notifications via email instead of in-app alerts',
                     icon: LineIcons.at,
                     value: _notificationSettings['email only'] ?? false,
                   ),
@@ -266,9 +268,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                   _buildNotificationToggle(
                     key: 'Promotions reminders',
                     title: 'Promotions Reminders',
-                    description: 'Reminders about ongoing and upcoming promotions',
+                    description:
+                        'Reminders about ongoing and upcoming promotions',
                     icon: LineIcons.bullhorn,
-                    value: _notificationSettings['Promotions reminders'] ?? true,
+                    value:
+                        _notificationSettings['Promotions reminders'] ?? true,
                   ),
                   const Divider(height: 32),
                   _buildNotificationToggle(
@@ -276,7 +280,9 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
                     title: 'Weekly Performance Digest',
                     description: 'Weekly summary of your business performance',
                     icon: LineIcons.fileInvoice,
-                    value: _notificationSettings['Weekly performance digest'] ?? true,
+                    value:
+                        _notificationSettings['Weekly performance digest'] ??
+                        true,
                   ),
                 ],
               ),
@@ -299,7 +305,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00D4AA), Color(0xFF00B894)],
+          colors: [Color(0xFF00D4AA), Color(0xFF13B386)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -379,11 +385,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
         children: [
           Row(
             children: [
-              Icon(
-                icon,
-                color: const Color(0xFF00D4AA),
-                size: 22,
-              ),
+              Icon(icon, color: const Color(0xFF00D4AA), size: 22),
               const SizedBox(width: 12),
               Text(
                 title,
@@ -496,18 +498,11 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.05),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.blue.withOpacity(0.2),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.blue.withOpacity(0.2), width: 1),
       ),
       child: Row(
         children: [
-          Icon(
-            LineIcons.infoCircle,
-            color: Colors.blue[700],
-            size: 20,
-          ),
+          Icon(LineIcons.infoCircle, color: Colors.blue[700], size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -528,15 +523,10 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
     final shouldDiscard = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text(
           'Discard Changes?',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         content: const Text(
           'You have unsaved changes. Are you sure you want to discard them?',
@@ -555,9 +545,7 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text(
               'Discard',
               style: TextStyle(fontWeight: FontWeight.w600),

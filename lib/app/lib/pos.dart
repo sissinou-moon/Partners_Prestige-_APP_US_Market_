@@ -9,7 +9,9 @@ class StatsService {
   /// ------------------------------------------------------
   /// 📌 1 — OVERVIEW STATS
   /// ------------------------------------------------------
-  Future<Map<String, dynamic>?> getOverviewStats({required String partnerId}) async {
+  Future<Map<String, dynamic>?> getOverviewStats({
+    required String partnerId,
+  }) async {
     final url = Uri.parse("$baseUrl/stats/overview?partner_id=$partnerId");
 
     final response = await http.get(url);
@@ -26,21 +28,42 @@ class StatsService {
     }
   }
 
-
   /// ------------------------------------------------------
   /// 📌 2 — LAST 7 DAYS STATS
   /// ------------------------------------------------------
-  Future<Map<String, dynamic>?> getLast7Days({required String partnerId}) async {
-    final url = Uri.parse("$baseUrl/stats/last-7-days?partner_id=$partnerId");
+  Future<Map<String, dynamic>?> getLast7Days({
+    required String partnerId,
+    String period = 'week',
+  }) async {
+    final url = Uri.parse(
+      "$baseUrl/stats/last-7-days?partner_id=$partnerId&period=$period",
+    );
 
     final response = await http.get(url);
 
     print("🔵 RAW 7-DAYS RESPONSE: ${response.body}");
 
     if (response.statusCode == 200) {
-      final Map<String, dynamic> data = jsonDecode(response.body);
-      print("🟢 PARSED 7-DAYS DATA: $data");
-      return data;
+      try {
+        final List<dynamic> list = jsonDecode(response.body);
+        final Map<String, List<Map<String, dynamic>>> grouped = {};
+
+        for (var item in list) {
+          final mapItem = item as Map<String, dynamic>;
+          final String branchName = mapItem['branch_name'] ?? 'Unknown';
+
+          if (!grouped.containsKey(branchName)) {
+            grouped[branchName] = [];
+          }
+          grouped[branchName]!.add(mapItem);
+        }
+
+        print("🟢 PARSED 7-DAYS DATA: $grouped");
+        return grouped;
+      } catch (e) {
+        print("🔴 ERROR PARSING 7-DAYS: $e");
+        return null;
+      }
     } else {
       print("🔴 ERROR 7-DAYS: ${response.body}");
       return null;
@@ -57,7 +80,9 @@ class StatsService {
       if (branchId != null) 'branch_id': branchId,
     };
 
-    final uri = Uri.parse("$baseUrl/stats/pos-transactions").replace(queryParameters: queryParams);
+    final uri = Uri.parse(
+      "$baseUrl/stats/pos-transactions",
+    ).replace(queryParameters: queryParams);
 
     final response = await http.get(uri);
 
@@ -75,31 +100,61 @@ class StatsService {
     }
   }
 
+  /// ------------------------------------------------------
+  /// 📌 4 — PARTNER TRANSACTIONS (EARN/REDEEM)
+  /// ------------------------------------------------------
+  Future<List<Map<String, dynamic>>?> getPartnerTransactions({
+    required String partnerId,
+    required String token,
+  }) async {
+    final uri = Uri.parse(
+      "https://usprestigeplusrewardsapp-production.up.railway.app/api/partners/get/partner/transactions?partner_id=$partnerId",
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    print("🔵 RAW PARTNER TRANSACTIONS RESPONSE: ${response.body}");
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['success'] == true && data['data'] != null) {
+        final List<dynamic> transactions = data['data'];
+        print("🟢 PARSED PARTNER TRANSACTIONS: ${transactions.length} items");
+        return transactions
+            .map((item) => item as Map<String, dynamic>)
+            .toList();
+      }
+      return [];
+    } else {
+      print("🔴 ERROR PARTNER TRANSACTIONS: ${response.body}");
+      return null;
+    }
+  }
 }
 
 class POSIntegrationService {
-  static const String baseUrl = 'https://usprestigeplusrewardsapp-production.up.railway.app/api/pos'; // Replace with your actual base URL
+  static const String baseUrl =
+      'https://usprestigeplusrewardsapp-production.up.railway.app/api/pos'; // Replace with your actual base URL
 
-  /// Start OAuth flow - Opens browser for Square authentication
-  static Future<bool> startSquareOAuth({
+  /// Start OAuth flow - Opens browser for Square/Clover authentication
+  static Future<bool> startOAuth({
     required String partnerId,
     required String provider,
   }) async {
     try {
       final uri = Uri.parse('$baseUrl/oauth/start').replace(
-        queryParameters: {
-          'partner_id': partnerId,
-          'provider': provider,
-        },
+        queryParameters: {'partner_id': partnerId, 'provider': provider},
       );
       print(uri.toString()); // ✅ Debug print the final URL
 
-
-        await launchUrl(
-          uri,
-          mode: LaunchMode.externalApplication,
-        );
-        return true;
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      return true;
     } catch (e) {
       print('Error starting OAuth: $e');
       rethrow;
@@ -113,12 +168,9 @@ class POSIntegrationService {
     required String partnerId,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/api/pos/oauth/callback').replace(
-        queryParameters: {
-          'code': code,
-          'state': partnerId,
-        },
-      );
+      final uri = Uri.parse(
+        '$baseUrl/api/pos/oauth/callback',
+      ).replace(queryParameters: {'code': code, 'state': partnerId});
 
       final response = await http.get(uri);
 
@@ -136,10 +188,7 @@ class POSIntegrationService {
       }
     } catch (e) {
       print('Error handling OAuth callback: $e');
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 
@@ -226,10 +275,7 @@ class POSIntegrationService {
       }
     } catch (e) {
       print('Error manual connection: $e');
-      return {
-        'success': false,
-        'message': 'Error: $e',
-      };
+      return {'success': false, 'message': 'Error: $e'};
     }
   }
 
@@ -238,9 +284,9 @@ class POSIntegrationService {
     required String token,
   }) async {
     try {
-      final uri = Uri.parse("$baseUrl/square/customers").replace(
-        queryParameters: {'partner_id': partnerId},
-      );
+      final uri = Uri.parse(
+        "$baseUrl/square/customers",
+      ).replace(queryParameters: {'partner_id': partnerId});
 
       final response = await http.get(
         uri,
@@ -280,9 +326,9 @@ class POSIntegrationService {
     String? phoneNumber,
   }) async {
     try {
-      final uri = Uri.parse("$baseUrl/square/customers").replace(
-        queryParameters: {'partner_id': partnerId},
-      );
+      final uri = Uri.parse(
+        "$baseUrl/square/customers",
+      ).replace(queryParameters: {'partner_id': partnerId});
 
       final body = {
         'givenName': givenName,
@@ -318,10 +364,7 @@ class POSIntegrationService {
     }
   }
 
-  static Future<bool> disconnect(
-      String partnerId,
-      String token,
-      ) async {
+  static Future<bool> disconnect(String partnerId, String token) async {
     try {
       final response = await http.put(
         Uri.parse('$baseUrl/disconnect?partner_id=$partnerId'),

@@ -10,21 +10,15 @@ class QRRedeemService {
   /// ------------------------------------------------------
   static Future<Map<String, dynamic>?> createRedeemQr({
     required String token,
-    required String branchId,
     required String rewardId,
-    required double cost,
     String? partnerId,
-    int? maxRedemptions,
   }) async {
     try {
       final uri = Uri.parse("$baseUrl/generate/redeem");
 
       final body = {
-        'branch_id': branchId,
         'reward_id': rewardId,
-        'cost': cost,
         if (partnerId != null) 'partner_id': partnerId,
-        if (maxRedemptions != null) 'max_redemptions': maxRedemptions,
       };
 
       final response = await http.post(
@@ -88,10 +82,7 @@ class QRRedeemService {
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
         print("🟢 PARSED SCAN QR DATA: $data");
-        return {
-          'success': true,
-          'data': data,
-        };
+        return {'success': true, 'data': data};
       } else {
         final Map<String, dynamic> errorData = jsonDecode(response.body);
         print("🔴 ERROR SCAN QR: ${response.body}");
@@ -104,10 +95,35 @@ class QRRedeemService {
       }
     } catch (e) {
       print("🔴 EXCEPTION SCAN QR: $e");
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  static Future<Map<String, dynamic>?> scanEarnQr({
+    required String token,
+    required String userId,
+    required int pointsToAdd,
+    required String partnerId,
+    required String partnerBranchId,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/scan/earn'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'user_id': userId,
+          'pointsToAdd': pointsToAdd,
+          'partner_id': partnerId,
+          'partner_branch_id': partnerBranchId,
+        }),
+      );
+      return jsonDecode(response.body);
+    } catch (e) {
+      print('Error scanning earn QR: $e');
+      return null;
     }
   }
 
@@ -149,7 +165,9 @@ class QRRedeemService {
 
       // Try to parse as query string format
       try {
-        final uri = Uri.parse(qrContent.contains('?') ? qrContent : '?$qrContent');
+        final uri = Uri.parse(
+          qrContent.contains('?') ? qrContent : '?$qrContent',
+        );
         if (uri.queryParameters.isNotEmpty) {
           print("🟢 PARSED QR DATA (Query String): ${uri.queryParameters}");
           return uri.queryParameters;
@@ -165,8 +183,9 @@ class QRRedeemService {
 
   static Future<List<dynamic>> getRewardsForPartner(String partnerId) async {
     try {
-      final url = Uri.parse("$baseUrl/scan/redeem")
-          .replace(queryParameters: {'partner_id': partnerId});
+      final url = Uri.parse(
+        "$baseUrl/scan/redeem",
+      ).replace(queryParameters: {'partner_id': partnerId});
 
       final response = await http.get(url);
 
@@ -174,7 +193,9 @@ class QRRedeemService {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return data['rewards'] as List<dynamic>;
       } else {
-        print('Error fetching rewards: ${response.statusCode} ${response.body}');
+        print(
+          'Error fetching rewards: ${response.statusCode} ${response.body}',
+        );
         return [];
       }
     } catch (e) {

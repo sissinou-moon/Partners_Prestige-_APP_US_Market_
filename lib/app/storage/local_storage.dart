@@ -1,8 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalStorage {
-
-  static const _onboardKey = "onboard_done";
+  static const _onboardKey = "onboard";
 
   static Future<void> setOnboardDone() async {
     final prefs = await SharedPreferences.getInstance();
@@ -13,7 +12,6 @@ class LocalStorage {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_onboardKey) ?? false;
   }
-
 
   static Future<void> setToken(String token) async {
     final prefs = await SharedPreferences.getInstance();

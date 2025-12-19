@@ -42,14 +42,8 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
   }
 
   Future<void> _generateQr() async {
-    if (_selectedBranchId == null || _selectedRewardId == null || _costController.text.trim().isEmpty) {
+    if (_selectedRewardId == null) {
       _showErrorSnackBar('Please fill in all required fields');
-      return;
-    }
-
-    final cost = double.tryParse(_costController.text.trim());
-    if (cost == null || cost <= 0) {
-      _showErrorSnackBar('Please enter a valid cost');
       return;
     }
 
@@ -64,23 +58,18 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
       final token = await LocalStorage.getToken();
       if (token == null) throw 'Authentication token not found';
 
-      final maxRedemptions = int.tryParse(_maxRedemptionsController.text.trim()) ?? 1;
-
-      if(user!['role'] != 'CASHIER') {
+      if (user!['role'] != 'CASHIER') {
         final partnerId = partner['id'];
 
         final result = await QRRedeemService.createRedeemQr(
           token: token,
-          branchId: _selectedBranchId!, // Use selected branch ID
           rewardId: _selectedRewardId!, // Use selected reward ID
-          cost: cost,
           partnerId: partnerId,
-          maxRedemptions: maxRedemptions,
         );
 
         if (result != null && result['qr'] != null) {
           setState(() {
-            _generatedQr = result['qr'];
+            //_generatedQr = result['qr'];
             _isLoading = false;
           });
           _showSuccessSnackBar('QR Code generated successfully!');
@@ -93,16 +82,13 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
 
         final result = await QRRedeemService.createRedeemQr(
           token: token,
-          branchId: _selectedBranchId!, // Use selected branch ID
           rewardId: _selectedRewardId!, // Use selected reward ID
-          cost: cost,
           partnerId: partnerId,
-          maxRedemptions: maxRedemptions,
         );
 
         if (result != null && result['qr'] != null) {
           setState(() {
-            _generatedQr = result['qr'];
+            //_generatedQr = result['qr'];
             _isLoading = false;
           });
           _showSuccessSnackBar('QR Code generated successfully!');
@@ -117,7 +103,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
     }
   }
 
-// Updated _resetForm():
+  // Updated _resetForm():
   void _resetForm() {
     setState(() {
       _generatedQr = null;
@@ -133,7 +119,8 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
     try {
       HapticFeedback.mediumImpact();
 
-      final boundary = _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      final boundary =
+          _qrKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
       if (boundary == null) throw 'Failed to get QR code image';
 
       final image = await boundary.toImage(pixelRatio: 3.0);
@@ -158,57 +145,57 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
 
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      appBar: role != 'CASHIER' ? AppBar(
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle.dark,
-        leading: IconButton(
-          icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Generate QR Code',
-          style: TextStyle(
-            color: Colors.black87,
-            fontSize: 22,
-            fontWeight: FontWeight.w600,
-            letterSpacing: -0.5,
-          ),
-        ),
-        actions: [
-          if (_generatedQr != null)
-            IconButton(
-              icon: const Icon(LineIcons.redo, color: Color(0xFF00D4AA)),
-              onPressed: _resetForm,
-              tooltip: 'Reset',
-            ),
-        ],
-      ) : null,
+      appBar: role != 'CASHIER'
+          ? AppBar(
+              elevation: 0,
+              backgroundColor: Colors.transparent,
+              systemOverlayStyle: SystemUiOverlayStyle.dark,
+              leading: IconButton(
+                icon: const Icon(LineIcons.arrowLeft, color: Colors.black87),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+              title: const Text(
+                'Generate QR Code',
+                style: TextStyle(
+                  color: Colors.black87,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              actions: [
+                if (_generatedQr != null)
+                  IconButton(
+                    icon: const Icon(LineIcons.redo, color: Color(0xFF00D4AA)),
+                    onPressed: _resetForm,
+                    tooltip: 'Reset',
+                  ),
+              ],
+            )
+          : null,
       body: _isLoading
           ? const Center(
-        child: CircularProgressIndicator(
-          color: Color(0xFF00D4AA),
-        ),
-      )
+              child: CircularProgressIndicator(color: Color(0xFF00D4AA)),
+            )
           : SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (_generatedQr == null) ...[
-              _buildInfoCard(),
-              const SizedBox(height: 24),
-              _buildFormSection(user['role']),
-            ] else ...[
-              _buildQrDisplay(),
-              const SizedBox(height: 24),
-              _buildQrDetails(),
-            ],
-            const SizedBox(height: 40),
-          ],
-        ),
-      ),
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (_generatedQr == null) ...[
+                    _buildInfoCard(),
+                    const SizedBox(height: 24),
+                    _buildFormSection(user['role']),
+                  ] else ...[
+                    _buildQrDisplay(),
+                    const SizedBox(height: 24),
+                    _buildQrDetails(),
+                  ],
+                  const SizedBox(height: 40),
+                ],
+              ),
+            ),
     );
   }
 
@@ -227,7 +214,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
             ),
             child: const Row(
               children: [
-                Icon(LineIcons.exclamationTriangle, color: Colors.orange, size: 20),
+                Icon(
+                  LineIcons.exclamationTriangle,
+                  color: Colors.orange,
+                  size: 20,
+                ),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -253,7 +244,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
               value: _selectedRewardId,
               hint: Row(
                 children: [
-                  const Icon(LineIcons.gift, color: Color(0xFF00D4AA), size: 18),
+                  const Icon(
+                    LineIcons.gift,
+                    color: Color(0xFF00D4AA),
+                    size: 18,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     'Select Reward *',
@@ -295,10 +290,13 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
               onChanged: (value) {
                 setState(() {
                   _selectedRewardId = value;
-                  final reward = rewards.firstWhere((r) => r['id'].toString() == value);
+                  final reward = rewards.firstWhere(
+                    (r) => r['id'].toString() == value,
+                  );
                   _selectedRewardName = reward['name'];
                   // Auto-fill cost
-                  _costController.text = (reward['points_required'] ?? 0).toString();
+                  _costController.text = (reward['points_required'] ?? 0)
+                      .toString();
                 });
                 HapticFeedback.selectionClick();
               },
@@ -343,7 +341,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
         ),
         child: Row(
           children: [
-            const Icon(LineIcons.exclamationCircle, color: Colors.red, size: 20),
+            const Icon(
+              LineIcons.exclamationCircle,
+              color: Colors.red,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -362,7 +364,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [Color(0xFF00D4AA), Color(0xFF00B894)],
+          colors: [Color(0xFF00D4AA), Color(0xFF13B386)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -383,11 +385,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
               color: Colors.white.withOpacity(0.2),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(
-              LineIcons.qrcode,
-              color: Colors.white,
-              size: 32,
-            ),
+            child: const Icon(LineIcons.qrcode, color: Colors.white, size: 32),
           ),
           const SizedBox(width: 16),
           const Expanded(
@@ -421,7 +419,9 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
 
   Widget _buildFormSection(String userRole) {
     final partner = ref.watch(partnerProvider);
-    final partnerId = userRole == 'OWNER' ? partner!['id'] as String? : partner?['partner']['id'];
+    final partnerId = userRole == 'OWNER'
+        ? partner!['id'] as String?
+        : partner?['partner']['id'];
 
     return Container(
       decoration: BoxDecoration(
@@ -455,33 +455,9 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
           ),
           const SizedBox(height: 20),
 
-          // Branch Dropdown
-          if (partnerId != null) _buildBranchDropdown(partnerId),
-          const SizedBox(height: 16),
-
           // Reward Dropdown
           if (partnerId != null) _buildRewardDropdown(partnerId),
           const SizedBox(height: 16),
-
-          // Cost
-          _buildFormField(
-            controller: _costController,
-            label: 'Points Cost *',
-            icon: LineIcons.coins,
-            hint: 'Enter points required',
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 16),
-
-          // Max Redemptions
-          _buildFormField(
-            controller: _maxRedemptionsController,
-            label: 'Max Redemptions',
-            icon: LineIcons.users,
-            hint: 'How many times can this be used?',
-            keyboardType: TextInputType.number,
-          ),
-          const SizedBox(height: 24),
 
           // Generate Button
           SizedBox(
@@ -527,7 +503,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
             ),
             child: const Row(
               children: [
-                Icon(LineIcons.exclamationTriangle, color: Colors.orange, size: 20),
+                Icon(
+                  LineIcons.exclamationTriangle,
+                  color: Colors.orange,
+                  size: 20,
+                ),
                 SizedBox(width: 12),
                 Expanded(
                   child: Text(
@@ -553,7 +533,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
               value: _selectedBranchId,
               hint: Row(
                 children: [
-                  const Icon(LineIcons.mapMarker, color: Color(0xFF00D4AA), size: 18),
+                  const Icon(
+                    LineIcons.mapMarker,
+                    color: Color(0xFF00D4AA),
+                    size: 18,
+                  ),
                   const SizedBox(width: 12),
                   Text(
                     'Select Branch *',
@@ -640,7 +624,11 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
         ),
         child: Row(
           children: [
-            const Icon(LineIcons.exclamationCircle, color: Colors.red, size: 20),
+            const Icon(
+              LineIcons.exclamationCircle,
+              color: Colors.red,
+              size: 20,
+            ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
@@ -664,21 +652,12 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
     return TextField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(
-        fontSize: 14,
-        fontWeight: FontWeight.w500,
-      ),
+      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
-        labelStyle: TextStyle(
-          color: Colors.grey[600],
-          fontSize: 13,
-        ),
-        hintStyle: TextStyle(
-          color: Colors.grey[400],
-          fontSize: 13,
-        ),
+        labelStyle: TextStyle(color: Colors.grey[600], fontSize: 13),
+        hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
         prefixIcon: Icon(icon, color: const Color(0xFF00D4AA), size: 18),
         filled: true,
         fillColor: Colors.grey[50],
@@ -737,10 +716,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
           const SizedBox(height: 8),
           Text(
             'Scan this code to redeem',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           ),
           const SizedBox(height: 24),
 
@@ -752,10 +728,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: const Color(0xFF00D4AA),
-                  width: 3,
-                ),
+                border: Border.all(color: const Color(0xFF00D4AA), width: 3),
               ),
               child: QrImageView(
                 data: qrString,
@@ -785,10 +758,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    side: const BorderSide(
-                      color: Color(0xFF00D4AA),
-                      width: 2,
-                    ),
+                    side: const BorderSide(color: Color(0xFF00D4AA), width: 2),
                   ),
                   icon: const Icon(
                     LineIcons.download,
@@ -901,11 +871,7 @@ class _QRGeneratorPageState extends ConsumerState<QRGeneratorPage> {
             color: const Color(0xFF00D4AA).withOpacity(0.1),
             borderRadius: BorderRadius.circular(10),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF00D4AA),
-            size: 20,
-          ),
+          child: Icon(icon, color: const Color(0xFF00D4AA), size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(

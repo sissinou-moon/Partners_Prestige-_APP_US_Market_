@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:prestige_partners/Root.dart';
 import 'package:prestige_partners/app/providers/partner_provider.dart';
 import 'package:prestige_partners/app/providers/user_provider.dart';
 import 'package:prestige_partners/app/providers/stats_provider.dart';
-import 'package:prestige_partners/app/storage/local_storage.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:prestige_partners/components/PointsHomePageChart.dart';
 
 import '../../components/BranchesTable.dart';
 import '../../components/HomePosTransactionsTable.dart';
+import '../../components/PartnerTransactionsTable.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  String _selectedChartPeriod = 'week';
+
+  @override
+  Widget build(BuildContext context) {
     final partner = ref.watch(partnerProvider);
     final user = ref.read(userProvider);
     final partnerId = partner?['id'];
@@ -25,7 +30,12 @@ class HomePage extends ConsumerWidget {
     }
 
     final overviewAsync = ref.watch(overviewStatsProvider(partnerId));
-    final last7daysAsync = ref.watch(last7DaysStatsProvider(partnerId));
+    final last7daysAsync = ref.watch(
+      last7DaysStatsProvider((
+        partnerId: partnerId,
+        period: _selectedChartPeriod,
+      )),
+    );
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -38,8 +48,9 @@ class HomePage extends ConsumerWidget {
               loading: () => _buildOverviewLoadingState(),
               error: (e, _) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(SnackBar(content: Text("Error: $e")));
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text("Error: $e")));
                 });
                 return const SizedBox();
               },
@@ -67,64 +78,86 @@ class HomePage extends ConsumerWidget {
                       color: const Color(0xFFFF6B9D),
                       icon: Icons.arrow_downward,
                     ),
-                    _buildOverviewCard(
-                      title: "Balance",
-                      value: stats["outstanding_balance"].toString(),
-                      color: const Color(0xFF4A90E2),
-                      icon: Icons.account_balance_wallet,
-                    ),
-                    _buildOverviewCard(
-                      title: "Total Visitors",
-                      value: stats["total_visitors"].toString(),
-                      color: const Color(0xFF9B59B6),
-                      icon: Icons.people,
-                    ),
                   ],
                 );
               },
             ),
 
-            if(user!['tier'] != 'none') const SizedBox(height: 20),
+            if (user!['tier'] != 'none') const SizedBox(height: 20),
 
-            // Branches Comparison Table - NEW!
-            if(user['tier'] != 'none') BranchesComparisonTable(partnerId: partnerId),
+            // Branches Comparison Table
+            if (user['tier'] != 'none')
+              BranchesComparisonTable(partnerId: partnerId),
 
             const SizedBox(height: 20),
 
             // CHART with proper loading states
             last7daysAsync.when(
-              loading: () => const PointsChart(
+              loading: () => PointsChart(
                 branchData: null,
                 isLoading: true,
+                period: _selectedChartPeriod,
+                onPeriodChanged: (p) =>
+                    setState(() => _selectedChartPeriod = p),
               ),
               error: (e, _) => PointsChart(
                 branchData: null,
                 errorMessage: e.toString(),
+                period: _selectedChartPeriod,
+                onPeriodChanged: (p) =>
+                    setState(() => _selectedChartPeriod = p),
               ),
               data: (days) {
                 if (days == null || days.isEmpty) {
-                  return const PointsChart(branchData: null);
+                  return PointsChart(
+                    branchData: null,
+                    period: _selectedChartPeriod,
+                    onPeriodChanged: (p) =>
+                        setState(() => _selectedChartPeriod = p),
+                  );
                 }
 
-                // Convert to the correct format: Map<String, List<Map<String, dynamic>>>
+                // In the new API logic, 'days' is already Map<String, List<Map<String, dynamic>>>
+                // because we processed it in StatsService.
+                // However, the provider return type says Map<String, dynamic>.
+                // We should cast it safely.
+
                 final Map<String, List<Map<String, dynamic>>> branchData = {};
 
-                days.forEach((branchName, list) {
-                  branchData[branchName] = List<Map<String, dynamic>>.from(list);
-                  // Sort each branch's data by date
-                  branchData[branchName]!.sort((a, b) => a['date'].compareTo(b['date']));
-                });
+                try {
+                  days.forEach((key, value) {
+                    if (value is List) {
+                      branchData[key] = List<Map<String, dynamic>>.from(value);
+                      // Sort by date
+                      // Depending on period (week, month, year), the date field might format differently?
+                      // Assuming it's YYYY-MM-DD or similar sortable string.
+                      branchData[key]!.sort(
+                        (a, b) => (a['date'] ?? '').compareTo(b['date'] ?? ''),
+                      );
+                    }
+                  });
+                } catch (e) {
+                  print("Error processing chart data: $e");
+                }
 
-                return PointsChart(branchData: branchData);
+                return PointsChart(
+                  branchData: branchData,
+                  period: _selectedChartPeriod,
+                  onPeriodChanged: (p) =>
+                      setState(() => _selectedChartPeriod = p),
+                );
               },
             ),
 
             const SizedBox(height: 20),
 
+            // Partner Transactions Table (EARN/REDEEM)
+            PartnerTransactionsTable(partnerId: partnerId),
+
+            const SizedBox(height: 20),
+
             // POS Transactions Table
-            PosTransactionsTable(
-              partnerId: partnerId,
-            ),
+            PosTransactionsTable(partnerId: partnerId),
 
             const SizedBox(height: 20),
           ],

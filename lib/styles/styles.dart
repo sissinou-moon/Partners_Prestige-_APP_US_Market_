@@ -24,10 +24,7 @@ class AppStyles {
   // Input container decoration
   static final BoxDecoration input = BoxDecoration(
     borderRadius: BorderRadius.circular(13),
-    border: Border.all(
-      color: const Color(0x30000000),
-      width: 0.7,
-    ),
+    border: Border.all(color: const Color(0x30000000), width: 0.7),
   );
 
   // Input title
@@ -40,12 +37,12 @@ class AppStyles {
   // Text button
   static const TextStyle textButton = TextStyle(
     fontSize: 12,
-    color: Color(0xFF004F54),
+    color: Color(0xFF13B386),
   );
 
   // Main Button
   static final BoxDecoration button = BoxDecoration(
-    color: const Color(0xFF004F54),
+    color: const Color(0xFF13B386),
     borderRadius: BorderRadius.circular(13),
   );
 
@@ -69,7 +66,5 @@ class AppStyles {
   );
 
   // Hint text style
-  static TextStyle hintText = TextStyle(
-    color: Colors.grey.withOpacity(0.5),
-  );
+  static TextStyle hintText = TextStyle(color: Colors.grey.withOpacity(0.5));
 }

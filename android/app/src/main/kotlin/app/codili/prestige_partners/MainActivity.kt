@@ -1,4 +1,4 @@
-package com.example.prestige_partners
+package app.codili.prestige_partners
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

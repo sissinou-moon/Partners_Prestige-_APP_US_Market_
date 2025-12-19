@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
+import 'package:prestige_partners/app/providers/user_provider.dart';
 import '../../app/providers/partner_provider.dart';
 import '../../app/lib/supabase.dart';
+import '../../app/lib/auth.dart';
 
 class MembersPage extends ConsumerStatefulWidget {
   const MembersPage({super.key});
@@ -60,7 +62,7 @@ class _MembersPageState extends ConsumerState<MembersPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header Section
-              _buildHeaderSection(),
+              _buildHeaderSection(partnerId),
               const SizedBox(height: 24),
 
               // Search Bar
@@ -83,12 +85,15 @@ class _MembersPageState extends ConsumerState<MembersPage> {
                     opacity: loading ? 0.5 : 1,
                     child: _MembersTable(
                       members: filteredMembers,
-                      onUpdate: (userId, data) => _updateMember(userId, data, partnerId), loading: loading,
+                      onUpdate: (userId, data) =>
+                          _updateMember(userId, data, partnerId),
+                      loading: loading,
                     ),
                   );
                 },
                 loading: () => const _LoadingMembersTable(),
-                error: (error, stack) => _ErrorMembersTable(error: error.toString()),
+                error: (error, stack) =>
+                    _ErrorMembersTable(error: error.toString()),
               ),
               const SizedBox(height: 20),
             ],
@@ -98,7 +103,7 @@ class _MembersPageState extends ConsumerState<MembersPage> {
     );
   }
 
-  Widget _buildHeaderSection() {
+  Widget _buildHeaderSection(String partnerId) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -116,14 +121,249 @@ class _MembersPageState extends ConsumerState<MembersPage> {
             const SizedBox(height: 4),
             Text(
               'Manage your team members',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),
+        ElevatedButton.icon(
+          onPressed: () => _showAddMemberDialog(partnerId),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF00D4AA),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: const Icon(FluentIcons.add_20_regular, color: Colors.white),
+          label: const Text(
+            'Add Member',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          ),
+        ),
       ],
+    );
+  }
+
+  void _showAddMemberDialog(String partnerId) {
+    final emailController = TextEditingController();
+    final passwordController = TextEditingController();
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+    final countryController = TextEditingController();
+    final birthdayController = TextEditingController();
+    final branchIdController = TextEditingController();
+    String role = 'CASHIER';
+    bool isSubmitting = false;
+
+    // Create future once to avoid re-fetching on setState
+    final branchesFuture = PartnerService.getBranches(partnerId);
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Add Member'),
+            content: SizedBox(
+              width: MediaQuery.of(context).size.width * 0.8,
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Full Name'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: emailController,
+                      decoration: const InputDecoration(labelText: 'Email'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: passwordController,
+                      decoration: const InputDecoration(labelText: 'Password'),
+                      obscureText: true,
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: phoneController,
+                      decoration: const InputDecoration(labelText: 'Phone'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: countryController,
+                      decoration: const InputDecoration(labelText: 'Country'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: birthdayController,
+                      decoration: const InputDecoration(
+                        labelText: 'Birthday (YYYY-MM-DD)',
+                      ),
+                      readOnly: true,
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(),
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          setState(() {
+                            birthdayController.text =
+                                "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String>(
+                      value: role,
+                      decoration: const InputDecoration(labelText: 'Role'),
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'CASHIER',
+                          child: Text('Staff'),
+                        ),
+                      ],
+                      onChanged: (val) {
+                        if (val != null) setState(() => role = val);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    // Branch Selection
+                    FutureBuilder<List<Branch>>(
+                      future: branchesFuture,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const LinearProgressIndicator();
+                        }
+                        if (snapshot.hasError) {
+                          return Text(
+                            'Error loading branches: ${snapshot.error}',
+                          );
+                        }
+                        final branches = snapshot.data ?? [];
+                        if (branches.isEmpty) {
+                          return const Text(
+                            'No branches found. Create a branch first.',
+                          );
+                        }
+
+                        return DropdownButtonFormField<String>(
+                          value: branchIdController.text.isNotEmpty
+                              ? branchIdController.text
+                              : null,
+                          decoration: const InputDecoration(
+                            labelText: 'Branch',
+                          ),
+                          items: branches
+                              .map(
+                                (b) => DropdownMenuItem(
+                                  value: b.id,
+                                  child: Text(b.branchName),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() => branchIdController.text = val);
+                            }
+                          },
+                          hint: const Text('Select a Branch'),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        if (nameController.text.isEmpty ||
+                            emailController.text.isEmpty ||
+                            passwordController.text.isEmpty ||
+                            phoneController.text.isEmpty ||
+                            countryController.text.isEmpty ||
+                            birthdayController.text.isEmpty ||
+                            branchIdController.text.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('All fields are required'),
+                            ),
+                          );
+                          return;
+                        }
+
+                        setState(() => isSubmitting = true);
+
+                        try {
+                          await ApiService.registerMember(
+                            email: emailController.text,
+                            password: passwordController.text,
+                            fullName: nameController.text,
+                            phone: phoneController.text,
+                            country: countryController.text,
+                            birthday: birthdayController.text,
+                            role: role,
+                            partnerBranchId: branchIdController.text,
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pop(context);
+                            ref.invalidate(partnerMembersProvider(partnerId));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Member added successfully'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Error: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (context.mounted) {
+                            setState(() => isSubmitting = false);
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00D4AA),
+                ),
+                child: isSubmitting
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Add Member',
+                        style: TextStyle(color: Colors.white),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -138,23 +378,20 @@ class _MembersPageState extends ConsumerState<MembersPage> {
       decoration: InputDecoration(
         hintText: 'Search members by name, email, phone, or referral code...',
         hintStyle: TextStyle(color: Colors.grey[500]),
-        prefixIcon: Icon(
-          FluentIcons.search_20_filled,
-          color: Colors.grey[600],
-        ),
+        prefixIcon: Icon(FluentIcons.search_20_filled, color: Colors.grey[600]),
         suffixIcon: _searchQuery.isNotEmpty
             ? IconButton(
-          icon: Icon(
-            FluentIcons.dismiss_20_filled,
-            color: Colors.grey[600],
-          ),
-          onPressed: () {
-            _searchController.clear();
-            setState(() {
-              _searchQuery = '';
-            });
-          },
-        )
+                icon: Icon(
+                  FluentIcons.dismiss_20_filled,
+                  color: Colors.grey[600],
+                ),
+                onPressed: () {
+                  _searchController.clear();
+                  setState(() {
+                    _searchQuery = '';
+                  });
+                },
+              )
             : null,
         filled: true,
         fillColor: Colors.white,
@@ -170,7 +407,10 @@ class _MembersPageState extends ConsumerState<MembersPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Color(0xFF00D4AA), width: 2),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -208,7 +448,11 @@ class _MembersPageState extends ConsumerState<MembersPage> {
     );
   }
 
-  Future<void> _updateMember(String userId, Map<String, dynamic> data, String partnerId) async {
+  Future<void> _updateMember(
+    String userId,
+    Map<String, dynamic> data,
+    String partnerId,
+  ) async {
     try {
       setState(() {
         loading = true;
@@ -246,19 +490,20 @@ class _MembersPageState extends ConsumerState<MembersPage> {
 }
 
 // Members Table Widget
-class _MembersTable extends StatelessWidget {
+class _MembersTable extends ConsumerWidget {
   final List<Members> members;
-  final Future<void> Function(String userId, Map<String, dynamic> data) onUpdate;
+  final Future<void> Function(String userId, Map<String, dynamic> data)
+  onUpdate;
   bool loading = false;
 
-   _MembersTable({
+  _MembersTable({
     required this.members,
     required this.onUpdate,
-    required this.loading
+    required this.loading,
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (members.isEmpty) {
       return const _EmptyMembersState();
     }
@@ -280,7 +525,7 @@ class _MembersTable extends StatelessWidget {
         child: DataTable(
           columnSpacing: 20,
           headingRowColor: WidgetStateColor.resolveWith(
-                (states) => Colors.grey.shade50,
+            (states) => Colors.grey.shade50,
           ),
           headingRowHeight: 56,
           dataRowHeight: 72,
@@ -327,16 +572,6 @@ class _MembersTable extends StatelessWidget {
             ),
             DataColumn(
               label: Text(
-                'Points',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF1A1A1A),
-                ),
-              ),
-            ),
-            DataColumn(
-              label: Text(
                 'Approved',
                 style: TextStyle(
                   fontSize: 12,
@@ -356,13 +591,25 @@ class _MembersTable extends StatelessWidget {
               ),
             ),
           ],
-          rows: members.map((member) => _buildMemberRow(context, member)).toList(),
+          rows: members
+              .map(
+                (member) =>
+                    _buildMemberRow(context, ref, member, members.length),
+              )
+              .toList(),
         ),
       ),
     );
   }
 
-  DataRow _buildMemberRow(BuildContext context, Members member) {
+  DataRow _buildMemberRow(
+    BuildContext context,
+    WidgetRef ref,
+    Members member,
+    int howManyMemeber,
+  ) {
+    final user = ref.watch(userProvider);
+
     return DataRow(
       cells: [
         // Member (Avatar + Name)
@@ -371,10 +618,13 @@ class _MembersTable extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundImage: member.profileImage != null && member.profileImage!.isNotEmpty
+                backgroundImage:
+                    member.profileImage != null &&
+                        member.profileImage!.isNotEmpty
                     ? NetworkImage(member.profileImage!)
                     : null,
-                child: member.profileImage == null || member.profileImage!.isEmpty
+                child:
+                    member.profileImage == null || member.profileImage!.isEmpty
                     ? const Icon(Icons.person, size: 20)
                     : null,
               ),
@@ -394,10 +644,7 @@ class _MembersTable extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Ref: ${member.referralCode ?? 'N/A'}',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -423,10 +670,7 @@ class _MembersTable extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   member.phone!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ],
@@ -435,43 +679,11 @@ class _MembersTable extends StatelessWidget {
 
         // Role
         DataCell(
-          _RoleBadge(role: member.role),
+          _RoleBadge(role: member.role == 'CASHIER' ? 'Staff' : member.role),
         ),
 
         // Status
-        DataCell(
-          _StatusBadge(status: member.status),
-        ),
-
-        // Points
-        DataCell(
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFB020).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(
-                  FluentIcons.star_20_filled,
-                  size: 14,
-                  color: Color(0xFFFFB020),
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  '0',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFFFB020),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        DataCell(_StatusBadge(status: member.status)),
 
         // Approved
         DataCell(
@@ -489,7 +701,9 @@ class _MembersTable extends StatelessWidget {
                 child: Row(
                   children: [
                     Icon(
-                      member.approved ? FluentIcons.dismiss_circle_20_filled : FluentIcons.checkmark_circle_20_filled,
+                      member.approved
+                          ? FluentIcons.dismiss_circle_20_filled
+                          : FluentIcons.checkmark_circle_20_filled,
                       size: 16,
                       color: Colors.grey[700],
                     ),
@@ -497,22 +711,50 @@ class _MembersTable extends StatelessWidget {
                     Text(member.approved ? 'Unapprove' : 'Approve'),
                   ],
                 ),
-                onTap: () => onUpdate(member.id, {'approved': !member.approved}),
+                onTap: () {
+                  if (howManyMemeber >= 2 &&
+                      user!['tier'] == 'Starter' &&
+                      member.approved == false) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'You can only approve 2 members. Upgrade for more members',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Color(0xFF1A1A1A),
+                      ),
+                    );
+                  } else if (howManyMemeber >= 4 &&
+                      user!['tier'] == 'Growth' &&
+                      member.approved == false) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'You can only approve 4 members. Upgrade for more members',
+                          style: TextStyle(color: Colors.white),
+                        ),
+                        backgroundColor: Color(0xFF1A1A1A),
+                      ),
+                    );
+                  } else {
+                    onUpdate(member.id, {'approved': !member.approved});
+                  }
+                },
               ),
-              PopupMenuItem(
-                child: Row(
-                  children: [
-                    Icon(
-                      FluentIcons.person_swap_20_filled,
-                      size: 16,
-                      color: Colors.grey[700],
-                    ),
-                    const SizedBox(width: 8),
-                    const Text('Change Role'),
-                  ],
-                ),
-                onTap: () => _showRoleDialog(context, member),
-              ),
+              //PopupMenuItem(
+              //  child: Row(
+              //    children: [
+              //      Icon(
+              //        FluentIcons.person_swap_20_filled,
+              //        size: 16,
+              //        color: Colors.grey[700],
+              //      ),
+              //      const SizedBox(width: 8),
+              //      const Text('Change Role'),
+              //    ],
+              //  ),
+              //  onTap: () => _showRoleDialog(context, member),
+              //),
               PopupMenuItem(
                 child: Row(
                   children: [
@@ -706,7 +948,9 @@ class _StatusBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: isActive ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+        color: isActive
+            ? Colors.green.withOpacity(0.1)
+            : Colors.red.withOpacity(0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
@@ -754,7 +998,7 @@ class _LoadingMembersTable extends StatelessWidget {
       child: Column(
         children: List.generate(
           5,
-              (index) => Padding(
+          (index) => Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Row(
               children: [
@@ -841,10 +1085,7 @@ class _ErrorMembersTable extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               error,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
           ],
@@ -893,10 +1134,7 @@ class _EmptyMembersState extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               'No members match your search criteria',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ],
         ),

@@ -3,8 +3,10 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../storage/local_storage.dart';
 
-const API_URL = "https://usprestigeplusrewardsapp-production.up.railway.app/api/partners";
-const PARTNERS_API_URL = "https://usprestigeplusrewardsapp-production.up.railway.app/api/partners";
+const API_URL =
+    "https://usprestigeplusrewardsapp-production.up.railway.app/api/partners";
+const PARTNERS_API_URL =
+    "https://usprestigeplusrewardsapp-production.up.railway.app/api/partners";
 
 class PartnerException implements Exception {
   final String message;
@@ -96,7 +98,8 @@ class LocationAddress {
       addressLine1: json['address_line_1'] as String?,
       addressLine2: json['address_line_2'] as String?,
       locality: json['locality'] as String?,
-      administrativeDistrictLevel1: json['administrative_district_level_1'] as String?,
+      administrativeDistrictLevel1:
+          json['administrative_district_level_1'] as String?,
       postalCode: json['postal_code'] as String?,
       country: json['country'] as String?,
     );
@@ -123,6 +126,95 @@ class LocationAddress {
   }
 }
 
+class PartnerBranch {
+  final String id;
+  final String partnerId;
+  final String branchName;
+  final String businessName;
+  final String address;
+  final String city;
+  final String state;
+  final String country;
+  final String phone;
+  final String email;
+
+  PartnerBranch({
+    required this.id,
+    required this.partnerId,
+    required this.branchName,
+    required this.businessName,
+    required this.address,
+    required this.city,
+    required this.state,
+    required this.country,
+    required this.phone,
+    required this.email,
+  });
+
+  factory PartnerBranch.fromJson(Map<String, dynamic> json) {
+    return PartnerBranch(
+      id: json['id'] ?? '',
+      partnerId: json['partner_id'] ?? '',
+      branchName: json['branch_name'] ?? '',
+      businessName: json['business_name'] ?? '',
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      country: json['country'] ?? '',
+      phone: json['phone'] ?? '',
+      email: json['email'] ?? '',
+    );
+  }
+}
+
+class NewPartner {
+  final String id;
+  final String businessName;
+  final String businessType;
+  final String category;
+  final String email;
+  final String phone;
+  final String logoUrl;
+  final String address;
+  final String city;
+  final String state;
+  final List<PartnerBranch> branches;
+
+  NewPartner({
+    required this.id,
+    required this.businessName,
+    required this.businessType,
+    required this.category,
+    required this.email,
+    required this.phone,
+    required this.logoUrl,
+    required this.address,
+    required this.city,
+    required this.state,
+    required this.branches,
+  });
+
+  factory NewPartner.fromJson(Map<String, dynamic> json) {
+    return NewPartner(
+      id: json['id'] ?? '',
+      businessName: json['business_name'] ?? '',
+      businessType: json['business_type'] ?? '',
+      category: json['category'] ?? '',
+      email: json['email'] ?? '',
+      phone: json['phone'] ?? '',
+      logoUrl: json['logo_url'] ?? '',
+      address: json['address'] ?? '',
+      city: json['city'] ?? '',
+      state: json['state'] ?? '',
+      branches:
+          (json['branches'] as List<dynamic>?)
+              ?.map((b) => PartnerBranch.fromJson(b))
+              .toList() ??
+          [],
+    );
+  }
+}
+
 class PartnerData {
   String? business_name;
   String? business_type;
@@ -134,6 +226,8 @@ class PartnerData {
   String? city;
   String? state;
   String? country;
+  String? postal_code;
+  String? license_number;
   String? logo_url;
   String? banner_url;
   String? user_id;
@@ -149,6 +243,8 @@ class PartnerData {
     this.city,
     this.state,
     this.country,
+    this.postal_code,
+    this.license_number,
     this.logo_url,
     this.banner_url,
     this.user_id,
@@ -164,6 +260,8 @@ class PartnerData {
     "city": city,
     "state": state,
     "country": country,
+    "postal_code": postal_code,
+    "license_number": license_number,
     "category": category,
     "logo_url": logo_url,
     "banner_url": banner_url,
@@ -213,6 +311,30 @@ class Branch {
     this.posLocationId,
     this.partner,
   });
+
+  Map<String, dynamic> toJSON() {
+    return {
+      'id': id,
+      'partnerId': partnerId,
+      'branchName': branchName,
+      'address': address,
+      'city': city,
+      'state': state,
+      'country': country,
+      'postalCode': postalCode,
+      'latitude': latitude,
+      'longitude': longitude,
+      'phone': phone,
+      'email': email,
+      'managerName': managerName,
+      'status': status,
+      'operatingHours': operatingHours,
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'posLocationId': posLocationId,
+      'partner': partner,
+    };
+  }
 
   factory Branch.fromJson(Map<String, dynamic> json) {
     return Branch(
@@ -273,13 +395,12 @@ class Members {
       role: json["role"] ?? "",
       approved: json["approved"] == "true" || json["approved"] == true,
       branchId: json["partner_branch_id"] ?? "",
-        referralCode: json["referral_code"] ?? "",
-        profileImage: json["profile_image"] ?? "",
-        status: json["status"] ?? ""
+      referralCode: json["referral_code"] ?? "",
+      profileImage: json["profile_image"] ?? "",
+      status: json["status"] ?? "",
     );
   }
 }
-
 
 class Partner {
   final String id;
@@ -376,8 +497,8 @@ class BranchComparison {
     return BranchComparison(
       locationName: json['location_name'] as String,
       membersServed: json['members_served'] as int,
-      pointsEarnedToday: json['points_earned_today'] as int,
-      redemptionsToday: json['redemptions_today'] as int,
+      pointsEarnedToday: json['points_earned'] as int,
+      redemptionsToday: json['redemptions'] as int,
       trendDirection: json['trend_direction'] as String,
       trendPercent: json['trend_percent'] != null
           ? (json['trend_percent'] as num).toDouble()
@@ -603,8 +724,7 @@ class PartnerService {
   }
 
   static Future<List<Branch>> getBranches(String partnerId) async {
-    final url = Uri.parse(
-        "$API_URL/$partnerId/branches");
+    final url = Uri.parse("$API_URL/$partnerId/branches");
 
     final response = await http.get(url);
 
@@ -623,7 +743,10 @@ class PartnerService {
     return list.map((e) => Branch.fromJson(e)).toList();
   }
 
-  static Future<Branch> getBranchDetails(String partnerId, String branchId) async {
+  static Future<Branch> getBranchDetails(
+    String partnerId,
+    String branchId,
+  ) async {
     final url = Uri.parse("$API_URL/$partnerId/branches/$branchId");
 
     final response = await http.get(url);
@@ -648,9 +771,7 @@ class PartnerService {
       final url = Uri.parse("$API_URL/$partnerId/branch-users");
       final response = await http.get(
         url,
-        headers: {
-          "Authorization": "Bearer $token",
-        },
+        headers: {"Authorization": "Bearer $token"},
       );
 
       if (response.statusCode != 200) {
@@ -699,21 +820,26 @@ class PartnerService {
     }
   }
 
-  static Future<List<BranchComparison>> getBranchesComparison(String partnerId) async {
+  static Future<List<BranchComparison>> getBranchesComparison(
+    String partnerId, {
+    String period = 'today',
+  }) async {
     try {
       final token = await LocalStorage.getToken();
-      final url = Uri.parse("$API_URL/$partnerId/branches-comparison");
+      final url = Uri.parse(
+        "$API_URL/$partnerId/branches-comparison?period=$period",
+      );
 
       final response = await http.get(
         url,
-        headers: {
-          "Authorization": "Bearer $token",
-        },
+        headers: {"Authorization": "Bearer $token"},
       );
 
       if (response.statusCode != 200) {
         final err = jsonDecode(response.body);
-        throw PartnerException(err['error'] ?? "Failed to load branches comparison");
+        throw PartnerException(
+          err['error'] ?? "Failed to load branches comparison",
+        );
       }
 
       final decoded = jsonDecode(response.body);
@@ -723,6 +849,7 @@ class PartnerService {
       }
 
       final List branches = decoded['branches'];
+      print(branches);
       return branches.map((e) => BranchComparison.fromJson(e)).toList();
     } catch (e) {
       throw PartnerException("Get branches comparison error: $e");
@@ -758,9 +885,13 @@ class PartnerService {
     }
   }
 
-  static Future<List<SquareLocation>> getSquareLocations(String partnerId) async {
+  static Future<List<SquareLocation>> getSquareLocations(
+    String partnerId,
+  ) async {
     try {
-      final url = Uri.parse("https://usprestigeplusrewardsapp-production.up.railway.app/api/pos/square/locations?partner_id=$partnerId");
+      final url = Uri.parse(
+        "https://usprestigeplusrewardsapp-production.up.railway.app/api/pos/square/locations?partner_id=$partnerId",
+      );
 
       final response = await http.get(url);
 
@@ -787,9 +918,7 @@ class PartnerService {
       final response = await http.post(
         url,
         headers: {"Content-Type": "application/json"},
-        body: jsonEncode({
-          "partner_id": partnerId,
-        }),
+        body: jsonEncode({"partner_id": partnerId}),
       );
 
       if (response.statusCode != 200) {
@@ -818,12 +947,14 @@ class PartnerService {
     required String tier,
     required int howMuch,
   }) async {
-    if(howMuch >= 1 && tier == 'Starter') {
+    if (howMuch >= 1 && tier == 'Starter') {
       throw Exception("You reach the max locations for STARTER tier!");
     } else if (howMuch >= 5 && tier == 'Growth') {
       throw Exception("You reach the max locations for GROWTH tier!");
     } else {
-      final url = Uri.parse('https://usprestigeplusrewardsapp-production.up.railway.app/api/pos/square/locations');
+      final url = Uri.parse(
+        'https://usprestigeplusrewardsapp-production.up.railway.app/api/pos/square/locations',
+      );
 
       final response = await http.post(
         url,
@@ -852,8 +983,9 @@ class PartnerService {
 
   static Future<Map<String, dynamic>?> getCashierBranch(String branchId) async {
     try {
-      final uri = Uri.parse("$API_URL/cashier/branch")
-          .replace(queryParameters: {"partner_branch_id": branchId});
+      final uri = Uri.parse(
+        "$API_URL/cashier/branch",
+      ).replace(queryParameters: {"partner_branch_id": branchId});
 
       final response = await http.get(uri);
 
@@ -871,6 +1003,88 @@ class PartnerService {
     }
   }
 
+  static Future<Map<String, dynamic>?> updateBranch({
+    required String token,
+    required String partnerId,
+    required String branchId,
+    required Map<String, dynamic> updates,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$API_URL/$partnerId/branches/$branchId'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(updates),
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 400 || response.statusCode == 500) {
+        final error = jsonDecode(response.body);
+        return {
+          'success': false,
+          'error': error['error'] ?? 'Failed to update branch',
+        };
+      } else {
+        return {
+          'success': false,
+          'error': 'Unexpected error: ${response.statusCode}',
+        };
+      }
+    } catch (e) {
+      print('❌ Branch update error: $e');
+      return {'success': false, 'error': 'Network error: $e'};
+    }
+  }
+
+  static Future<List<NewPartner>> fetchPartnersWithBranches() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$API_URL/get/partners-branches'),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
+
+        if (jsonResponse['success'] == true) {
+          final List<dynamic> data = jsonResponse['data'];
+          return data.map((json) => NewPartner.fromJson(json)).toList();
+        } else {
+          throw Exception(jsonResponse['message'] ?? 'Failed to load partners');
+        }
+      } else {
+        throw Exception('Server error: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching partners: $e');
+      throw Exception('Failed to fetch partners: $e');
+    }
+  }
+
+  static Future<bool> deleteReward(String rewardId) async {
+    final url = Uri.parse(
+      'https://usprestigeplusrewardsapp-production.up.railway.app/api/db/reward/$rewardId/delete',
+    );
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['message'] == 'Reward deleted successfully';
+      } else {
+        return false;
+      }
+    } catch (e) {
+      return false;
+    }
+  }
 }
 
 // ========================

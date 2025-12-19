@@ -23,13 +23,11 @@ class StorePage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10,),
+            const SizedBox(height: 10),
             _BannerWidget(partner: partner),
             _BusinessDetailsWidget(partner: partner),
-            _BranchesWidget(
-              branchesAsyncValue: branchesAsyncValue,
-            ),
-            _BusinessMetricsWidget(partner: partner),
+            _BranchesWidget(branchesAsyncValue: branchesAsyncValue),
+            //_BusinessMetricsWidget(partner: partner),
             const SizedBox(height: 20),
           ],
         ),
@@ -65,23 +63,23 @@ class _BannerWidget extends StatelessWidget {
             borderRadius: BorderRadius.circular(15),
             image: bannerUrl != null && bannerUrl.isNotEmpty
                 ? DecorationImage(
-              image: NetworkImage(bannerUrl),
-              fit: BoxFit.cover,
-            )
+                    image: NetworkImage(bannerUrl),
+                    fit: BoxFit.cover,
+                  )
                 : null,
           ),
           child: bannerUrl == null || bannerUrl.isEmpty
               ? Center(
-            child: Icon(
-              FluentIcons.image_20_regular,
-              size: 64,
-              color: Colors.grey.shade400,
-            ),
-          )
+                  child: Icon(
+                    FluentIcons.image_20_regular,
+                    size: 64,
+                    color: Colors.grey.shade400,
+                  ),
+                )
               : null,
         ),
 
-        SizedBox(width: double.infinity,),
+        SizedBox(width: double.infinity),
 
         // Gradient Overlay
         Container(
@@ -92,10 +90,7 @@ class _BannerWidget extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Colors.transparent,
-                Colors.black.withOpacity(0.5),
-              ],
+              colors: [Colors.transparent, Colors.black.withOpacity(0.5)],
             ),
           ),
         ),
@@ -146,17 +141,14 @@ class _LogoContainer extends StatelessWidget {
       ),
       child: logoUrl != null && logoUrl!.isNotEmpty
           ? ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: Image.network(
-          logoUrl!,
-          fit: BoxFit.cover,
-        ),
-      )
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(logoUrl!, fit: BoxFit.cover),
+            )
           : Icon(
-        FluentIcons.building_20_filled,
-        size: 40,
-        color: Colors.grey.shade400,
-      ),
+              FluentIcons.building_20_filled,
+              size: 40,
+              color: Colors.grey.shade400,
+            ),
     );
   }
 }
@@ -185,12 +177,7 @@ class _BusinessInfoColumn extends StatelessWidget {
               fontSize: 24,
               fontWeight: FontWeight.bold,
               color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: Colors.black54,
-                  blurRadius: 4,
-                ),
-              ],
+              shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
             ),
           ),
           const SizedBox(height: 4),
@@ -213,10 +200,7 @@ class _BadgeChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _BadgeChip({
-    required this.label,
-    required this.color,
-  });
+  const _BadgeChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {
@@ -331,7 +315,7 @@ class _BusinessDetailsWidget extends StatelessWidget {
                 icon: FluentIcons.location_20_filled,
                 title: 'Address',
                 value:
-                '$address${city != null ? ', $city' : ''}${state != null ? ', $state' : ''}${postalCode != null ? ' $postalCode' : ''}',
+                    '$address${city != null ? ', $city' : ''}${state != null ? ', $state' : ''}${postalCode != null ? ' $postalCode' : ''}',
                 color: const Color(0xFFFF6B9D),
               ),
           ],
@@ -360,7 +344,9 @@ class _BranchesWidgetState extends ConsumerState<_BranchesWidget> {
       padding: const EdgeInsets.all(16),
       child: widget.branchesAsyncValue.when(
         data: (branches) {
-          final selectedBranch = branches.isNotEmpty ? branches[selectedBranchIndex] : null;
+          final selectedBranch = branches.isNotEmpty
+              ? branches[selectedBranchIndex]
+              : null;
 
           return Column(
             children: [
@@ -441,14 +427,13 @@ class _BranchDropdown extends StatelessWidget {
         ),
         items: List.generate(
           branches.length,
-              (index) => DropdownMenuItem(
+          (index) => DropdownMenuItem(
             value: index,
             child: Text(branches[index].branchName ?? 'Branch $index'),
           ),
         ),
       ),
     );
-
   }
 }
 
@@ -487,7 +472,7 @@ class _BranchDetailsCard extends StatelessWidget {
               icon: FluentIcons.location_20_filled,
               title: 'Address',
               value:
-              '$address${city != null ? ', $city' : ''}${state != null ? ', $state' : ''}${country != null ? ', $country' : ''}${postalCode != null ? ' $postalCode' : ''}',
+                  '$address${city != null ? ', $city' : ''}${state != null ? ', $state' : ''}${country != null ? ', $country' : ''}${postalCode != null ? ' $postalCode' : ''}',
               color: const Color(0xFFFF6B9D),
             ),
             const _DividerWithSpacing(),
@@ -524,12 +509,22 @@ class _OperatingHoursCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final operatingHoursData = branch.operatingHours as Map<String, dynamic>?;
     final timezone = operatingHoursData?['timezone'] as String? ?? 'UTC';
-    final hoursData = operatingHoursData?['operating_hours'] as Map<String, dynamic>?;
+    final hoursData =
+        operatingHoursData?['operating_hours'] as Map<String, dynamic>?;
     final is24Hours = hoursData?['is_24_hours'] as bool? ?? false;
-    final regularHours = hoursData?['regular_hours'] as Map<String, dynamic>? ?? {};
+    final regularHours =
+        hoursData?['regular_hours'] as Map<String, dynamic>? ?? {};
     final specialHours = hoursData?['special_hours'] as List<dynamic>? ?? [];
 
-    const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayOrder = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
     const dayDisplayNames = {
       'monday': 'Monday',
       'tuesday': 'Tuesday',
@@ -555,10 +550,7 @@ class _OperatingHoursCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _BadgeChip(
-                label: timezone,
-                color: const Color(0xFF00D4AA),
-              ),
+              _BadgeChip(label: timezone, color: const Color(0xFF00D4AA)),
             ],
           ),
           const SizedBox(height: 16),
@@ -630,26 +622,23 @@ class _RegularHoursList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      children: List.generate(
-        dayOrder.length,
-            (index) {
-          final day = dayOrder[index];
-          final dayHours = regularHours[day] as Map<String, dynamic>?;
-          final openTime = dayHours?['open'] as String? ?? '--:--';
-          final closeTime = dayHours?['close'] as String? ?? '--:--';
+      children: List.generate(dayOrder.length, (index) {
+        final day = dayOrder[index];
+        final dayHours = regularHours[day] as Map<String, dynamic>?;
+        final openTime = dayHours?['open'] as String? ?? '--:--';
+        final closeTime = dayHours?['close'] as String? ?? '--:--';
 
-          return Column(
-            children: [
-              _HourRow(
-                day: dayDisplayNames[day] ?? day,
-                hours: '$openTime - $closeTime',
-              ),
-              if (index < dayOrder.length - 1)
-                Divider(height: 1, color: Colors.grey.shade200),
-            ],
-          );
-        },
-      ),
+        return Column(
+          children: [
+            _HourRow(
+              day: dayDisplayNames[day] ?? day,
+              hours: '$openTime - $closeTime',
+            ),
+            if (index < dayOrder.length - 1)
+              Divider(height: 1, color: Colors.grey.shade200),
+          ],
+        );
+      }),
     );
   }
 }
@@ -658,10 +647,7 @@ class _HourRow extends StatelessWidget {
   final String day;
   final String hours;
 
-  const _HourRow({
-    required this.day,
-    required this.hours,
-  });
+  const _HourRow({required this.day, required this.hours});
 
   @override
   Widget build(BuildContext context) {
@@ -776,7 +762,9 @@ class _SpecialHourItem extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: isClosed ? Colors.red.shade900 : Colors.amber.shade900,
+                    color: isClosed
+                        ? Colors.red.shade900
+                        : Colors.amber.shade900,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -786,7 +774,9 @@ class _SpecialHourItem extends StatelessWidget {
                       date,
                       style: TextStyle(
                         fontSize: 12,
-                        color: isClosed ? Colors.red.shade700 : Colors.amber.shade700,
+                        color: isClosed
+                            ? Colors.red.shade700
+                            : Colors.amber.shade700,
                       ),
                     ),
                     if (!isClosed) ...[
@@ -796,7 +786,9 @@ class _SpecialHourItem extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: isClosed ? Colors.red.shade700 : Colors.amber.shade700,
+                          color: isClosed
+                              ? Colors.red.shade700
+                              : Colors.amber.shade700,
                         ),
                       ),
                     ],
@@ -1045,15 +1037,17 @@ class _LoadingBranchDetailsCard extends StatelessWidget {
         children: [
           _ShimmerBox(height: 24, width: 150),
           const SizedBox(height: 20),
-          ...[0, 1, 2].map((i) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _ShimmerBox(height: 14, width: 80),
-              const SizedBox(height: 8),
-              _ShimmerBox(height: 18, width: double.infinity),
-              if (i < 2) const SizedBox(height: 16),
-            ],
-          )),
+          ...[0, 1, 2].map(
+            (i) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ShimmerBox(height: 14, width: 80),
+                const SizedBox(height: 8),
+                _ShimmerBox(height: 18, width: double.infinity),
+                if (i < 2) const SizedBox(height: 16),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1071,18 +1065,20 @@ class _LoadingOperatingHoursCard extends StatelessWidget {
         children: [
           _ShimmerBox(height: 24, width: 180),
           const SizedBox(height: 20),
-          ...[0, 1, 2, 3, 4, 5, 6].map((i) => Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _ShimmerBox(height: 16, width: 80),
-                  _ShimmerBox(height: 16, width: 100),
-                ],
-              ),
-              if (i < 6) const SizedBox(height: 16),
-            ],
-          )),
+          ...[0, 1, 2, 3, 4, 5, 6].map(
+            (i) => Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _ShimmerBox(height: 16, width: 80),
+                    _ShimmerBox(height: 16, width: 100),
+                  ],
+                ),
+                if (i < 6) const SizedBox(height: 16),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -1093,10 +1089,7 @@ class _ShimmerBox extends StatefulWidget {
   final double height;
   final double width;
 
-  const _ShimmerBox({
-    required this.height,
-    required this.width,
-  });
+  const _ShimmerBox({required this.height, required this.width});
 
   @override
   State<_ShimmerBox> createState() => _ShimmerBoxState();
