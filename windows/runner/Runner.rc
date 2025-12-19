@@ -95,7 +95,7 @@ BEGIN
             VALUE "InternalName", "prestige_partners" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "prestige_partners.exe" "\0"
-            VALUE "ProductName", "prestige_partners" "\0"
+            VALUE "ProductName", "Prestige Business" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

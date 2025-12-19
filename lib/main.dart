@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Prestige+',
+      title: 'Prestige Business',
       debugShowCheckedModeBanner: false,
       builder: (context, child) {
         return ConnectivityOverlay(child: child!);
