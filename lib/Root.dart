@@ -11,6 +11,9 @@ import 'app/providers/partner_provider.dart';
 import 'app/providers/subscription_provider.dart';
 import 'app/providers/user_provider.dart';
 import 'app/storage/local_storage.dart';
+import 'package:app_links/app_links.dart';
+import 'package:prestige_partners/pages/authentifications/SignUpPage.dart';
+import 'dart:async';
 
 class RootLayout extends ConsumerStatefulWidget {
   const RootLayout({super.key});
@@ -22,11 +25,46 @@ class RootLayout extends ConsumerStatefulWidget {
 class _RootLayoutState extends ConsumerState<RootLayout> {
   bool _loading = true;
   bool _authenticated = false;
+  bool _forceSignUp = false;
+  late AppLinks _appLinks;
+  StreamSubscription<Uri>? _linkSubscription;
 
   @override
   void initState() {
     super.initState();
+    _initDeepLinks();
     _checkAuth();
+  }
+
+  @override
+  void dispose() {
+    _linkSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _initDeepLinks() {
+    _appLinks = AppLinks();
+
+    // Check initial link if app was closed
+    _appLinks.getInitialLink().then((uri) {
+      if (uri != null) {
+        _handleDeepLink(uri);
+      }
+    });
+
+    // Listen for incoming links while app is running
+    _linkSubscription = _appLinks.uriLinkStream.listen((uri) {
+      _handleDeepLink(uri);
+    });
+  }
+
+  void _handleDeepLink(Uri uri) {
+    print('DEEP LINK RECEIVED: $uri');
+    if (uri.scheme == 'prestigePartners' && uri.host == 'register') {
+      setState(() {
+        _forceSignUp = true;
+      });
+    }
   }
 
   bool _showOnboarding = false;
@@ -102,6 +140,16 @@ class _RootLayoutState extends ConsumerState<RootLayout> {
     // If authenticated but biometric not verified, show biometric screen
     if (_authenticated && !biometricVerified) {
       return const BiometricVerificationScreen();
+    }
+
+    if (_forceSignUp) {
+      return Navigator(
+        onPopPage: (route, result) {
+          setState(() => _forceSignUp = false);
+          return route.didPop(result);
+        },
+        pages: const [MaterialPage(child: SignUpPage())],
+      );
     }
 
     return _authenticated ? const Maintablayout() : const SignInPage();
