@@ -58,12 +58,33 @@ class _RootLayoutState extends ConsumerState<RootLayout> {
     });
   }
 
-  void _handleDeepLink(Uri uri) {
+  void _handleDeepLink(Uri uri) async {
     print('DEEP LINK RECEIVED: $uri');
-    if (uri.scheme == 'prestigePartners' && uri.host == 'register') {
-      setState(() {
-        _forceSignUp = true;
-      });
+    final String scheme = uri.scheme.toLowerCase();
+    final String host = uri.host.toLowerCase();
+    final String path = uri.path.toLowerCase();
+
+    if (scheme == 'prestigepartners' &&
+        (host == 'register' || path.contains('register'))) {
+      String? token = await LocalStorage.getToken();
+      if (token != null && token.isNotEmpty) {
+        // User already has an account, show toast if still mounted
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("You already have an account!"),
+              backgroundColor: Colors.black87,
+              behavior: SnackBarBehavior.floating,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        // Only force sign up if not authenticated
+        setState(() {
+          _forceSignUp = true;
+        });
+      }
     }
   }
 
@@ -119,6 +140,14 @@ class _RootLayoutState extends ConsumerState<RootLayout> {
     if (mounted) {
       setState(() => _loading = false);
     }
+  }
+
+  handleSignOut() async {
+    await LocalStorage.removeToken();
+    ref.invalidate(partnerProvider);
+    ref.read(biometricSessionProvider.notifier).state = false;
+    await ref.read(subscriptionProvider.notifier).clearSubscription();
+    ref.invalidate(userProvider);
   }
 
   @override
